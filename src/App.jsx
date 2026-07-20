@@ -3100,7 +3100,7 @@ function App() {
 
             <div style={{ padding: '0 24px' }}>
               <div className="drawer-tabs">
-                {['Requirements', 'Attachments', 'Comments', 'Revision Design'].map(tab => (
+                {['Requirements', 'Attachments', 'Comments', 'Timeline', 'Revision Design'].map(tab => (
                   <button
                     key={tab}
                     className={`drawer-tab ${activeDrawerTab === tab ? 'active' : ''}`}
@@ -3761,7 +3761,123 @@ function App() {
                 </div>
               )}
 
+              {activeDrawerTab === 'Timeline' && (
+                <div>
+                  {/* Visual Stepper */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0 20px 0' }}>
+                    {[
+                      { 
+                        label: 'Request Submitted', 
+                        desc: `Submitted by ${selectedRequest.requestedBy || 'Sales Manager'}`,
+                        done: true, 
+                        active: false 
+                      },
+                      { 
+                        label: 'Assign Designer', 
+                        desc: selectedRequest.assignedDesigner !== 'Unassigned' 
+                          ? `Assigned to ${selectedRequest.assignedDesigner}` 
+                          : 'Pending assignment by Design Head',
+                        done: selectedRequest.assignedDesigner !== 'Unassigned',
+                        active: selectedRequest.assignedDesigner === 'Unassigned'
+                      },
+                      { 
+                        label: 'Designing Process', 
+                        desc: selectedRequest.status === 'In Progress' 
+                          ? 'Designer is actively drafting/modeling' 
+                          : ['In Progress', 'Pending Review', 'Completed', 'Approved'].includes(selectedRequest.status)
+                            ? 'Drafting and structural modeling complete'
+                            : 'Waiting for work to start',
+                        done: ['In Progress', 'Pending Review', 'Completed', 'Approved'].includes(selectedRequest.status),
+                        active: selectedRequest.status === 'Assigned'
+                      },
+                      { 
+                        label: 'Drawing Submitted', 
+                        desc: ['Pending Review', 'Completed', 'Approved'].includes(selectedRequest.status) 
+                          ? 'Design files submitted for review' 
+                          : 'Waiting for design submittal',
+                        done: ['Pending Review', 'Completed', 'Approved'].includes(selectedRequest.status),
+                        active: selectedRequest.status === 'In Progress'
+                      },
+                      { 
+                        label: 'Approve & Sent to Sales Manager', 
+                        desc: ['Completed', 'Approved'].includes(selectedRequest.status) 
+                          ? 'Approved! Design files dispatched to Sales Manager.' 
+                          : 'Awaiting design head approval',
+                        done: ['Completed', 'Approved'].includes(selectedRequest.status),
+                        active: selectedRequest.status === 'Pending Review'
+                      }
+                    ].map((step, idx, arr) => (
+                      <div key={idx} style={{ display: 'flex', gap: '16px', position: 'relative' }}>
+                        {/* Connector Line */}
+                        {idx < arr.length - 1 && (
+                          <div style={{ 
+                            position: 'absolute', 
+                            left: '11px', 
+                            top: '24px', 
+                            bottom: '-16px', 
+                            width: '2px', 
+                            backgroundColor: step.done && arr[idx+1].done ? 'var(--success)' : 'var(--border-color)',
+                            zIndex: 1
+                          }}></div>
+                        )}
+                        {/* Dot */}
+                        <div style={{ 
+                          width: '24px', 
+                          height: '24px', 
+                          borderRadius: '50%', 
+                          backgroundColor: step.done ? 'var(--success)' : step.active ? 'var(--primary)' : 'var(--bg-tertiary)',
+                          color: step.done || step.active ? '#FFFFFF' : 'var(--text-secondary)',
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          zIndex: 2,
+                          border: step.active ? '4px solid var(--primary-light)' : 'none',
+                          boxSizing: 'border-box'
+                        }}>
+                          {step.done ? '✓' : idx + 1}
+                        </div>
+                        {/* Content */}
+                        <div style={{ flex: 1, marginTop: '2px' }}>
+                          <h4 style={{ 
+                            fontSize: '0.85rem', 
+                            fontWeight: 700, 
+                            color: step.done || step.active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                            margin: 0 
+                          }}>{step.label}</h4>
+                          <p style={{ 
+                            fontSize: '0.75rem', 
+                            color: 'var(--text-muted)', 
+                            margin: '4px 0 0 0' 
+                          }}>{step.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
+                  {/* Log history */}
+                  <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                    <h4 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px' }}>Activity Log</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {selectedRequest.history?.map((hist, index) => (
+                        <div key={index} className="timeline-item">
+                          <div className="timeline-icon-container">
+                            <History size={14} style={{ color: 'var(--primary)' }} />
+                          </div>
+                          <div className="timeline-content">
+                            <div className="timeline-header">
+                              <span className="timeline-title" style={{ fontSize: '0.8rem' }}>{hist.title}</span>
+                              <span className="timeline-time" style={{ fontSize: '0.7rem' }}>{hist.time}</span>
+                            </div>
+                            <span className="timeline-desc" style={{ fontSize: '0.75rem' }}>{hist.desc}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {activeDrawerTab === 'Revision Design' && (
                 <div>

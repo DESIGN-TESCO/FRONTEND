@@ -361,6 +361,7 @@ h1, h2, h3, h4, h5, h6 {
 .badge-urgent { background-color: #FEE2E2; color: #991B1B; }
 .badge-high { background-color: #FEF3C7; color: #92400E; }
 .badge-medium { background-color: #E0E7FF; color: #3730A3; }
+.badge-normal { background-color: var(--bg-tertiary); color: var(--text-secondary); }
 .badge-low { background-color: var(--bg-tertiary); color: var(--text-secondary); }
 
 /* Filter Bar Styling */

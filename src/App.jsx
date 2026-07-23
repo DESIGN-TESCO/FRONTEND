@@ -1,10 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import DesignTeamDashboard from './DesignTeamDashboard';
 import {
   LayoutDashboard,
   Inbox,
   FolderOpen,
   Users,
   FileText,
+  Database,
+  LogOut,
   BarChart2,
   Settings,
   Search,
@@ -295,7 +298,7 @@ const initialDesignRequests = [
     projectType: 'PEB',
     service: 'Thermal PEB Roofing',
     requirement: '2D Drawing',
-    priority: 'Low',
+    priority: 'Normal',
     requestedBy: 'Sanjay Dutt (Sales Manager)',
     assignedDesigner: 'Unassigned',
     dueDate: '2026-08-05',
@@ -829,6 +832,21 @@ function App() {
     { id: 4, title: 'Project Design Completed', message: 'Rahul Sharma finalized Truss designs for residential truss', read: true, time: '2 days ago', category: 'Completed' }
   ]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const headNotifRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (headNotifRef.current && !headNotifRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   // Handle open drawer (used in table view & detailed view transition)
   const handleOpenDrawer = (request) => {
@@ -1266,6 +1284,7 @@ function App() {
       'Urgent': 'badge badge-urgent',
       'High': 'badge badge-high',
       'Medium': 'badge badge-medium',
+      'Normal': 'badge badge-normal',
       'Low': 'badge badge-low'
     };
     return <span className={styleMap[priority] || 'badge'}>{priority}</span>;
@@ -1450,6 +1469,19 @@ function App() {
     );
   }
 
+  if (loginRole === 'Design Team') {
+    return (
+      <DesignTeamDashboard
+        requests={requests}
+        setRequests={setRequests}
+        designers={designers}
+        setDesigners={setDesigners}
+        onLogout={() => setIsLoggedIn(false)}
+        loginEmail={loginEmail}
+      />
+    );
+  }
+
   return (
     <div className="app-layout" style={{ fontFamily: 'var(--font-sans)', display: 'flex', minHeight: '100vh', backgroundColor: '#F8FAFC' }}>
       {/* LEFT SIDEBAR */}
@@ -1473,12 +1505,17 @@ function App() {
             { id: 'Documents', label: 'Documents', icon: <FileText size={18} /> },
             { id: 'Calendar', label: 'Calendar', icon: <CalendarRange size={18} /> },
             { id: 'Notifications', label: 'Notifications', icon: <Bell size={18} /> },
-            { id: 'Settings', label: 'Settings', icon: <Settings size={18} /> }
+            { id: 'Settings', label: 'Settings', icon: <Settings size={18} /> },
+            { id: 'Tesco ERM', label: 'Tesco ERM', icon: <Database size={18} /> }
           ].map(item => (
             <li key={item.id}>
               <div
                 className={`menu-item ${currentTab === item.id ? 'active' : ''}`}
                 onClick={() => {
+                  if (item.id === 'Tesco ERM') {
+                    window.open('/erm.html', '_blank');
+                    return;
+                  }
                   setCurrentTab(item.id);
                   setSelectedProjectId(null);
                   setSelectedBoqId(null);
@@ -1496,8 +1533,12 @@ function App() {
                   fontSize: '0.85rem',
                   fontWeight: 500,
                   transition: 'background-color 0.2s',
-                  backgroundColor: currentTab === item.id ? 'rgba(255,255,255,0.15)' : 'transparent',
-                  color: currentTab === item.id ? '#FFFFFF' : 'rgba(255,255,255,0.8)'
+                  backgroundColor: currentTab === item.id 
+                    ? (item.id === 'Tesco ERM' ? '#44A810' : 'rgba(255,255,255,0.15)') 
+                    : (item.id === 'Tesco ERM' ? 'rgba(68, 168, 16, 0.15)' : 'transparent'),
+                  color: currentTab === item.id 
+                    ? '#FFFFFF' 
+                    : (item.id === 'Tesco ERM' ? '#A3E635' : 'rgba(255,255,255,0.8)')
                 }}
               >
                 {item.icon}
@@ -1507,7 +1548,7 @@ function App() {
           ))}
         </ul>
 
-        {/* Profile Card in Sidebar Footer */}
+         {/* Profile Card in Sidebar Footer */}
         <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'rgba(255,255,255,0.06)', padding: '10px', borderRadius: '8px' }}>
             <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: loginRole === 'Design Head' ? '#5C6AC4' : '#10B981', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.8rem' }}>
@@ -1515,11 +1556,30 @@ function App() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{loginRole}</div>
-              <div style={{ fontSize: '0.65rem', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.65rem', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 <span>Tesco Structures</span>
-                <span onClick={() => { setIsLoggedIn(false); setCurrentTab('Dashboard'); }} style={{ color: '#F87171', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', marginLeft: '6px' }}>Logout</span>
               </div>
             </div>
+            <button
+              onClick={() => { setIsLoggedIn(false); setCurrentTab('Dashboard'); }}
+              title="Logout"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#F87171',
+                cursor: 'pointer',
+                padding: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '6px',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(248, 113, 113, 0.15)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </aside>
@@ -1551,21 +1611,22 @@ function App() {
             </div>
 
             {/* Notification Widget */}
-            <button
-              className="action-btn"
-              onClick={() => setShowNotifications(!showNotifications)}
-              style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: 'var(--text-secondary)' }}
-              title="Notifications"
-            >
-              <Bell size={20} />
-              {notifications.some(n => !n.read) && (
-                <span style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--danger)' }}></span>
-              )}
-            </button>
+            <div ref={headNotifRef} style={{ position: 'relative' }}>
+              <button
+                className="action-btn"
+                onClick={() => setShowNotifications(!showNotifications)}
+                style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: 'var(--text-secondary)' }}
+                title="Notifications"
+              >
+                <Bell size={20} />
+                {notifications.some(n => !n.read) && (
+                  <span style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--danger)' }}></span>
+                )}
+              </button>
 
-            {/* Notification Dropdown Panel */}
-            {showNotifications && (
-              <div className="notification-dropdown" style={{ position: 'absolute', top: '75px', right: '32px', width: '320px', backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--shadow-lg)', zIndex: 100 }}>
+              {/* Notification Dropdown Panel */}
+              {showNotifications && (
+                <div className="notification-dropdown" style={{ position: 'absolute', top: '45px', right: 0, width: '320px', backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--shadow-lg)', zIndex: 100 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid var(--border-color)' }}>
                   <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700 }}>Notifications</h3>
                   <button
@@ -1587,6 +1648,7 @@ function App() {
                 </div>
               </div>
             )}
+          </div>
           </div>
         </header>
 
@@ -1937,7 +1999,7 @@ function App() {
                     <option value="Urgent">Urgent</option>
                     <option value="High">High</option>
                     <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
+                    <option value="Normal">Normal</option>
                   </select>
 
                   {/* Project Types dropdown */}
@@ -3980,7 +4042,7 @@ function App() {
                       <option value="Urgent">Urgent</option>
                       <option value="High">High</option>
                       <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
+                      <option value="Normal">Normal</option>
                     </select>
                   </div>
                 </div>
@@ -4033,7 +4095,7 @@ function App() {
                     <option value="Urgent">Urgent</option>
                     <option value="High">High</option>
                     <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
+                    <option value="Normal">Normal</option>
                   </select>
                 </div>
 

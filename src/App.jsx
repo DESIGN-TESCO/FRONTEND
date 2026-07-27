@@ -172,7 +172,7 @@ const initialDesignRequests = [
     budget: '$48,000',
     timeline: '3 Weeks',
     location: 'MIDC Chakan, Block G, Pune',
-    deliverables: ['Roof Layout', 'Elevation', 'Shop Drawing', '3D Exterior Render', 'BOQ', 'Fabrication Drawing'],
+    deliverables: ['Roof Layout', 'Elevation', '2D Drawing', '3D Exterior Render', 'BOQ', 'Fabrication Drawing'],
     pebDetails: {
       span: '36 meters',
       length: '150 meters',
@@ -255,13 +255,14 @@ const initialDesignRequests = [
     requirement: 'BOQ',
     priority: 'Medium',
     requestedBy: 'Ritesh Deshmukh (Sales Manager)',
+    salesManager: 'Ritesh Deshmukh',
     assignedDesigner: 'Priya Das',
     dueDate: '2026-07-28',
     status: 'Pending Review',
     budget: '$25,000',
     timeline: '15 Days',
     location: 'Connaught Place, New Delhi',
-    deliverables: ['3D Exterior Render', 'Walkthrough Animation', 'Shop Drawing'],
+    deliverables: ['3D Exterior Render', 'Walkthrough Animation', '2D Drawing'],
     pebDetails: {
       span: '12 meters',
       length: '30 meters',
@@ -328,6 +329,170 @@ const initialDesignRequests = [
     comments: [],
     history: [
       { title: 'Sales Manager submitted request', time: '2026-07-16 04:10 PM', desc: 'Sanjay Dutt submitted request for Choudhary Cold Storage.' }
+    ]
+  },
+  {
+    id: 'REQ-2026-005',
+    leadId: 'LD-2026-1042',
+    customerName: 'Tata Steel Processing Ltd.',
+    projectName: 'Processing Plant Shed',
+    projectType: 'PEB',
+    service: 'Industrial Plant Design',
+    requirement: '2D Layout + 3D Model',
+    priority: 'High',
+    requestedBy: 'Ritesh Deshmukh (Sales Manager)',
+    assignedDesigner: 'Amit Patel',
+    dueDate: '2026-07-15',
+    status: 'Completed',
+    budget: '$65,000',
+    timeline: '4 Weeks',
+    location: 'MIDC Ranjangaon, Pune',
+    deliverables: ['GA Layout', '3D Model', 'Structural drawings', 'BOQ Sheet'],
+    pebDetails: {
+      span: '42 meters',
+      length: '200 meters',
+      width: '80 meters',
+      height: '14 meters',
+      builtUpArea: '16,000 sq meters',
+      roofType: 'Standing Seam Insulation Double Skin',
+      wallCladding: 'Steel sheeting (0.50 mm)',
+      craneRequired: 'Yes - 25 Ton Crane',
+      scope: 'Structural design & fabrication detailing',
+      budget: '$65,000',
+      timeline: '4 Weeks'
+    },
+    attachments: [
+      { name: 'plant_shed_layout.dwg', size: '24.5 MB', type: 'AutoCAD' },
+      { name: 'struc_analysis_report.std', size: '4.2 MB', type: 'STAAD' }
+    ],
+    comments: [
+      { sender: 'Design Head', role: 'Coordinator', text: 'All design aspects check out. Drawings are approved for manufacturing.', time: '2026-07-14 04:00 PM' }
+    ],
+    history: [
+      { title: 'Project Approved by Design Head', time: '2026-07-14 04:00 PM', desc: 'Design Head completed final submittal check and approved the project.' }
+    ]
+  },
+  {
+    id: 'REQ-2026-006',
+    leadId: 'LD-2026-3024',
+    customerName: 'Jindal Steel & Power',
+    projectName: 'Heavy Fabrication Workshop',
+    projectType: 'PEB',
+    service: 'Workshop Structural Detailing',
+    requirement: '2D Drawings',
+    priority: 'Normal',
+    requestedBy: 'Sanjay Dutt (Sales Manager)',
+    assignedDesigner: 'Vikram Malhotra',
+    dueDate: '2026-07-18',
+    status: 'Approved',
+    budget: '$55,000',
+    timeline: '3 Weeks',
+    location: 'Raigarh Plant Zone, Chhattisgarh',
+    deliverables: ['Erection Drawings', 'Part Drawings', '2D Drawings', 'BOQ'],
+    pebDetails: {
+      span: '30 meters',
+      length: '120 meters',
+      width: '50 meters',
+      height: '12 meters',
+      builtUpArea: '6,000 sq meters',
+      roofType: 'Single Skin standing seam',
+      wallCladding: 'Profiled metal sheet (0.50 mm)',
+      craneRequired: 'Yes - 15 Ton overhead EOT crane',
+      scope: 'Detailed 2D drawings & assembly models',
+      budget: '$55,000',
+      timeline: '3 Weeks'
+    },
+    attachments: [
+      { name: 'workshop_erection_plan.dwg', size: '15.6 MB', type: 'AutoCAD' }
+    ],
+    comments: [
+      { sender: 'Design Head', role: 'Coordinator', text: 'Drawings approved. Ready to dispatch.', time: '2026-07-17 11:30 AM' }
+    ],
+    history: [
+      { title: 'Approved by Design Head', time: '2026-07-17 11:30 AM', desc: 'Design Head approved final design submittals.' }
+    ]
+  },
+  {
+    id: 'REQ-2026-007',
+    leadId: 'LD-2026-4412',
+    customerName: 'Mahindra Logistics Hub',
+    projectName: 'Logistics Sorting Terminal',
+    projectType: 'PEB',
+    service: 'PEB Layout & Detailing',
+    requirement: '2D Layouts + BOQ',
+    priority: 'High',
+    requestedBy: 'Ritesh Deshmukh (Sales Manager)',
+    assignedDesigner: 'Rahul Sharma',
+    dueDate: '2026-07-19',
+    status: 'Approved',
+    budget: '$70,000',
+    timeline: '4 Weeks',
+    location: 'Chakan Logistics Park, Pune',
+    deliverables: ['GA Layout', 'BOQ Sheet', 'Anchor Bolt Plan'],
+    pebDetails: {
+      span: '48 meters',
+      length: '250 meters',
+      width: '100 meters',
+      height: '15 meters',
+      builtUpArea: '25,000 sq meters',
+      roofType: 'Standing Seam Double Skin with Glasswool insulation',
+      wallCladding: 'Metal sheets with brick wall up to 3m',
+      craneRequired: 'No',
+      scope: 'Layout designing, anchor bolt detailing & BOQ generation',
+      budget: '$70,000',
+      timeline: '4 Weeks'
+    },
+    attachments: [
+      { name: 'logistics_hub_layout.dwg', size: '32.1 MB', type: 'AutoCAD' }
+    ],
+    comments: [
+      { sender: 'Design Head', role: 'Coordinator', text: 'Checked and approved. Please forward files to client.', time: '2026-07-18 02:45 PM' }
+    ],
+    history: [
+      { title: 'Approved by Design Head', time: '2026-07-18 02:45 PM', desc: 'Final review completed. Layout and anchor bolt plans approved.' }
+    ]
+  },
+  {
+    id: 'REQ-2026-008',
+    leadId: 'LD-2026-5712',
+    customerName: 'AeroHub Terminal Complex',
+    projectName: 'Steel Truss Space Frame',
+    projectType: 'PEB',
+    service: 'Space Frame Designing',
+    requirement: '3D Render',
+    priority: 'High',
+    requestedBy: 'Salman Khan (Project Manager)',
+    projectManager: 'Salman Khan',
+    assignedDesigner: 'Rahul Sharma',
+    dueDate: '2026-08-02',
+    status: 'Pending Review',
+    budget: '$85,000',
+    timeline: '4 Weeks',
+    location: 'Kempegowda Int Airport, Bengaluru',
+    deliverables: ['3D Render', 'Walkthrough Animation', 'BOQ Sheet'],
+    pebDetails: {
+      span: '40 meters',
+      length: '180 meters',
+      width: '80 meters',
+      height: '16 meters',
+      builtUpArea: '14,400 sq meters',
+      roofType: 'Standing Seam',
+      wallCladding: 'Glass curtain wall with metal sheeting',
+      craneRequired: 'No',
+      scope: 'Space frame architectural structural design',
+      budget: '$85,000',
+      timeline: '4 Weeks'
+    },
+    attachments: [
+      { name: 'terminal_layout.dwg', size: '28.4 MB', type: 'AutoCAD' }
+    ],
+    comments: [
+      { sender: 'Rahul Sharma', role: 'Designer', text: 'Completed space frame rendering. Awaiting review.', time: '2026-07-27 10:00 AM' }
+    ],
+    history: [
+      { title: 'Sales Manager submitted request', time: '2026-07-25 09:00 AM', desc: 'Sanjay Dutt submitted space frame design request.' },
+      { title: 'Assigned to Designer', time: '2026-07-25 11:30 AM', desc: 'Assigned to Rahul Sharma.' },
+      { title: 'Designer completed submittal', time: '2026-07-27 10:00 AM', desc: 'Rahul Sharma submitted design files.' }
     ]
   }
 ];
@@ -1498,10 +1663,8 @@ function App() {
           {[
             { id: 'Dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
             { id: 'Design Requests', label: 'Design Requests', icon: <Inbox size={18} /> },
-            { id: 'BOQ Management', label: 'BOQ Management', icon: <FileSpreadsheet size={18} /> },
             { id: 'Design Team', label: 'Design Team', icon: <Users size={18} /> },
             { id: 'Review Queue', label: 'Review Queue', icon: <CheckSquare size={18} /> },
-            { id: 'Drawings Library', label: 'Drawings Library', icon: <FolderOpen size={18} /> },
             { id: 'Documents', label: 'Documents', icon: <FileText size={18} /> },
             { id: 'Calendar', label: 'Calendar', icon: <CalendarRange size={18} /> },
             { id: 'Notifications', label: 'Notifications', icon: <Bell size={18} /> },
@@ -1728,7 +1891,36 @@ function App() {
                         <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{r.projectType}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Assigned: <strong>{r.assignedDesigner}</strong></span>
+                        {r.projectManager ? (
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Project Manager: <strong>{r.projectManager}</strong></span>
+                        ) : (
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Sales Manager: <strong>{r.salesManager || r.requestedBy?.replace(' (Sales Manager)', '') || 'Ritesh Deshmukh'}</strong></span>
+                        )}
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                          Assigned: 
+                          <select 
+                            value={r.assignedDesigner} 
+                            onChange={(e) => handleDirectAssignDesigner(r.id, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ 
+                              marginLeft: '6px', 
+                              padding: '2px 6px', 
+                              borderRadius: '4px', 
+                              border: '1px solid var(--border-color)',
+                              backgroundColor: '#FFFFFF',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              color: '#1E293B',
+                              outline: 'none',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="Unassigned">Unassigned</option>
+                            {designers.map(d => (
+                              <option key={d.id} value={d.name}>{d.name}</option>
+                            ))}
+                          </select>
+                        </span>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Due: {r.dueDate}</span>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button className="badge badge-completed" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); updateRequestStatus('Completed', `Approved drawings for ${r.id}`, r); }}>Approve</button>
@@ -1966,78 +2158,7 @@ function App() {
                 ))}
               </div>
 
-              {/* Filters */}
-              <div className="filter-bar" style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-                  
-                  {/* Search Input */}
-                  <div style={{ position: 'relative', flex: '1.5', minWidth: '220px' }}>
-                    <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Search Lead, Client, Request..."
-                      value={searchText}
-                      onChange={(e) => setSearchText(e.target.value)}
-                      style={{ width: '100%', paddingLeft: '38px', boxSizing: 'border-box' }}
-                    />
-                  </div>
 
-                  {/* Statuses dropdown */}
-                  <select className="form-control" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ flex: '1', minWidth: '140px' }}>
-                    <option value="All">All Statuses</option>
-                    <option value="New">New</option>
-                    <option value="Assigned">Assigned</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Pending Review">Pending Review</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-
-                  {/* Priorities dropdown */}
-                  <select className="form-control" value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} style={{ flex: '1', minWidth: '140px' }}>
-                    <option value="All">All Priorities</option>
-                    <option value="Urgent">Urgent</option>
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Normal">Normal</option>
-                  </select>
-
-                  {/* Project Types dropdown */}
-                  <select className="form-control" value={filterType} onChange={(e) => setFilterType(e.target.value)} style={{ flex: '1', minWidth: '140px' }}>
-                    <option value="All">All Project Types</option>
-                    <option value="PEB">PEB</option>
-                    <option value="Tensile">Tensile</option>
-                    <optgroup label="Other Roofing">
-                      <option value="Tensile Roofing">01 Tensile Roofing</option>
-                      <option value="uPVC Roofing in Chennai">02 uPVC Roofing in Chennai</option>
-                      <option value="Polycarbonate Roofing">03 Polycarbonate Roofing</option>
-                      <option value="Glass Roofing">04 Glass Roofing</option>
-                      <option value="Mangalore Tile Roofing">05 Mangalore Tile Roofing</option>
-                      <option value="Shingles Roofing">06 Shingles Roofing</option>
-                      <option value="GI Roofing in Chennai">07 GI Roofing in Chennai</option>
-                      <option value="Retractable Roofing">08 Retractable Roofing</option>
-                    </optgroup>
-                  </select>
-
-                  {/* Designers dropdown */}
-                  <select className="form-control" value={filterDesigner} onChange={(e) => setFilterDesigner(e.target.value)} style={{ flex: '1', minWidth: '140px' }}>
-                    <option value="All">All Designers</option>
-                    <option value="Unassigned">Unassigned</option>
-                    {designers.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-                  </select>
-
-                  {/* Sales Managers dropdown */}
-                  <select className="form-control" value={filterSalesManager} onChange={(e) => setFilterSalesManager(e.target.value)} style={{ flex: '1', minWidth: '140px' }}>
-                    <option value="All">All Sales Managers</option>
-                    <option value="Ritesh">Ritesh Deshmukh</option>
-                    <option value="Sanjay">Sanjay Dutt</option>
-                  </select>
-
-                  {/* Reset Filters button */}
-                  <button className="btn-reset" onClick={resetFilters} style={{ padding: '8px 16px', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, marginLeft: 'auto', whiteSpace: 'nowrap' }}>Reset Filters</button>
-
-                </div>
-              </div>
 
               {/* Large searchable table */}
               <div className="table-card" style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
@@ -2088,7 +2209,6 @@ function App() {
                               <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleOpenAssignModal(r); }}>Assign</button>
                               <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--success-light)', color: 'var(--success)' }} onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); updateRequestStatus('Completed', 'Approve drawings', r); }}>Approve</button>
                               <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--warning-light)', color: 'var(--warning)' }} onClick={(e) => { e.stopPropagation(); handleOpenRevisionModal(r); }}>Revision</button>
-                              <button className="btn-danger" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); if (window.confirm(`Are you sure you want to delete ${r.id}?`)) { setRequests(prev => prev.filter(req => req.id !== r.id)); } }}>Delete</button>
                             </div>
                           </td>
                         </tr>
@@ -2668,7 +2788,6 @@ function App() {
                              <td style={{ textAlign: 'center' }}>
                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                                  <button className="btn-primary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={() => setSelectedDesignerName(d.name)}>View</button>
-                                 <button className="btn-danger" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={() => { if (window.confirm(`Are you sure you want to delete designer ${d.name}?`)) { setDesigners(prev => prev.filter(item => item.id !== d.id)); } }}>Delete</button>
                                </div>
                              </td>
                           </tr>
@@ -2733,29 +2852,21 @@ function App() {
                           <td>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
                               <button 
-                                className="btn-primary" 
-                                style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px', backgroundColor: 'var(--success)', borderColor: 'var(--success)', color: '#FFFFFF' }} 
-                                onClick={() => { setSelectedRequest(r); updateRequestStatus('Completed', 'Approve drawings', r); }}
+                                className="btn-secondary" 
+                                style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px', backgroundColor: 'var(--success-light)', color: 'var(--success)', borderColor: 'var(--success-light)' }} 
+                                onClick={() => {
+                                  setSelectedRequest(r);
+                                  updateRequestStatus('Design Ready', 'Approve drawings', r);
+                                }}
                               >
-                                Approve drawings
+                                Approve Drawings
                               </button>
                               <button 
                                 className="btn-secondary" 
-                                style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', border: '1px solid var(--warning-light)' }} 
-                                onClick={() => { handleOpenRevisionModal(r); }}
+                                style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', borderColor: 'var(--warning-light)' }} 
+                                onClick={() => handleOpenRevisionModal(r)}
                               >
                                 Revision Request
-                              </button>
-                              <button 
-                                className="btn-danger" 
-                                style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px' }} 
-                                onClick={() => {
-                                  if (window.confirm(`Are you sure you want to delete ${r.id}?`)) {
-                                    setRequests(prev => prev.filter(req => req.id !== r.id));
-                                  }
-                                }}
-                              >
-                                Delete
                               </button>
                             </div>
                           </td>
@@ -2830,67 +2941,143 @@ function App() {
 
           {/* TAB 9: DOCUMENTS */}
           {currentTab === 'Documents' && (
-            <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '24px' }}>
-                <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '8px' }}>Document Types</h4>
-                  {['All', '2D Requirements', '3D Briefs', 'BOQ Files', 'Site References'].map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedDocCategory(cat)}
-                      style={{
-                        padding: '10px',
-                        border: 'none',
-                        background: selectedDocCategory === cat ? 'var(--primary-light)' : 'none',
-                        color: selectedDocCategory === cat ? 'var(--primary)' : 'var(--text-secondary)',
-                        borderRadius: '6px',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        fontWeight: selectedDocCategory === cat ? 600 : 400,
-                        fontSize: '0.85rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                    >
-                      <FileText size={16} />
-                      <span>{cat}</span>
-                    </button>
-                  ))}
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Document Types Top Bar */}
+              <div style={{ display: 'flex', gap: '10px', backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px 20px', overflowX: 'auto', alignItems: 'center', boxShadow: 'var(--shadow-sm)' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginRight: '12px', whiteSpace: 'nowrap' }}>Document Types:</span>
+                {['All', '2D Requirements', '3D Briefs', 'BOQ Files', 'Site References'].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedDocCategory(cat)}
+                    style={{
+                      padding: '8px 16px',
+                      border: 'none',
+                      background: selectedDocCategory === cat ? 'var(--primary-light)' : 'none',
+                      color: selectedDocCategory === cat ? 'var(--primary)' : 'var(--text-secondary)',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: selectedDocCategory === cat ? 600 : 500,
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <FileText size={16} style={{ color: selectedDocCategory === cat ? 'var(--primary)' : 'var(--text-muted)' }} />
+                    <span>{cat}</span>
+                  </button>
+                ))}
+              </div>
 
-                <div className="table-card" style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Project Documents Repository</h4>
-                    <button className="btn-primary" onClick={() => alert('Mock document upload initiated.')}>Upload Document</button>
+              {/* Full Width Table Card */}
+              <div className="table-card" style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>Project Documents Repository</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Manage structural drawings, designs, specifications and reference attachments</p>
                   </div>
-                  <table className="crm-table">
-                    <thead>
-                      <tr>
-                        <th>Document</th>
-                        <th>Project</th>
-                        <th>Uploaded By</th>
-                        <th>Version</th>
-                        <th>Upload Date</th>
-                        <th style={{ textAlign: 'center' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {documentsList.filter(d => selectedDocCategory === 'All' || d.category === selectedDocCategory || (selectedDocCategory === 'PDF' && d.name.endsWith('.pdf'))).map(doc => (
-                        <tr key={doc.id}>
-                          <td style={{ fontWeight: 600 }}><div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Paperclip size={14} /><span>{doc.name}</span></div></td>
-                          <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{doc.project}</td>
-                          <td>{doc.uploadedBy}</td>
-                          <td>{doc.version}</td>
-                          <td>{doc.date}</td>
-                          <td style={{ textAlign: 'center' }}>
-                            <button className="btn-secondary" style={{ padding: '2px 8px', fontSize: '0.75rem' }} onClick={() => alert(`Downloading document: ${doc.name}`)}>Download</button>
+                </div>
+                <table className="crm-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#F8FAFC', textAlign: 'left' }}>
+                      <th style={{ padding: '12px' }}>Document</th>
+                      <th style={{ padding: '12px' }}>Project</th>
+                      <th style={{ padding: '12px' }}>Uploaded By</th>
+                      <th style={{ padding: '12px' }}>Version</th>
+                      <th style={{ padding: '12px' }}>Upload Date</th>
+                      <th style={{ padding: '12px', textAlign: 'center' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {documentsList.filter(d => selectedDocCategory === 'All' || d.category === selectedDocCategory || (selectedDocCategory === 'PDF' && d.name.endsWith('.pdf'))).map(doc => {
+                      const fileExt = doc.name.split('.').pop()?.toUpperCase() || 'FILE';
+                      const getBadgeColor = (ext) => {
+                        if (ext === 'PDF') return { bg: '#FEE2E2', text: '#991B1B', border: '#FCA5A5' };
+                        if (ext === 'DWG' || ext === 'DXF') return { bg: '#DBEAFE', text: '#1E40AF', border: '#93C5FD' };
+                        if (ext === 'ZIP' || ext === 'RAR') return { bg: '#FEF3C7', text: '#92400E', border: '#FCD34D' };
+                        return { bg: '#F1F5F9', text: '#475569', border: '#CBD5E1' };
+                      };
+                      const badge = getBadgeColor(fileExt);
+
+                      return (
+                        <tr key={doc.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <td style={{ padding: '14px 12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ 
+                                padding: '4px 8px', 
+                                borderRadius: '6px', 
+                                backgroundColor: badge.bg, 
+                                color: badge.text, 
+                                border: `1px solid ${badge.border}`,
+                                fontSize: '0.68rem', 
+                                fontWeight: 800 
+                              }}>
+                                {fileExt}
+                              </span>
+                              <span style={{ fontWeight: 700, color: '#1E293B' }}>{doc.name}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 12px' }}>
+                            <span style={{ 
+                              padding: '4px 10px', 
+                              borderRadius: '12px', 
+                              backgroundColor: '#E0E7FF', 
+                              color: '#3730A3', 
+                              fontWeight: 700, 
+                              fontSize: '0.75rem' 
+                            }}>
+                              {doc.project}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ 
+                                width: '24px', 
+                                height: '24px', 
+                                borderRadius: '50%', 
+                                backgroundColor: '#EFF6FF', 
+                                color: '#2563EB', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                fontSize: '0.7rem', 
+                                fontWeight: 700 
+                              }}>
+                                {doc.uploadedBy.split(' ').map(n => n[0]).join('')}
+                              </div>
+                              <span style={{ fontWeight: 600, color: '#475569' }}>{doc.uploadedBy}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 12px' }}>
+                            <span style={{ 
+                              padding: '2px 6px', 
+                              borderRadius: '4px', 
+                              backgroundColor: '#F1F5F9', 
+                              color: '#475569', 
+                              fontWeight: 700, 
+                              fontSize: '0.72rem',
+                              border: '1px solid #E2E8F0'
+                            }}>
+                              {doc.version}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 12px', color: '#64748B', fontWeight: 500 }}>{doc.date}</td>
+                          <td style={{ padding: '14px 12px', textAlign: 'center' }}>
+                            <button 
+                              className="btn-secondary" 
+                              style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }} 
+                              onClick={() => alert(`Downloading document: ${doc.name}`)}
+                            >
+                              <Download size={12} /> Download
+                            </button>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -2898,41 +3085,107 @@ function App() {
           {/* TAB 10: CALENDAR */}
           {currentTab === 'Calendar' && (
             <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Design Calendar - July 2026</h3>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--danger)' }}></span> Deadline</span>
-                  <span style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary)' }}></span> Submissions</span>
-                  <span style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--warning)' }}></span> Revisions</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Design Calendar</h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>July 2026 schedule & deliverable deadlines</p>
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <span style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--danger)' }}></span> Urgent</span>
+                  <span style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--warning)' }}></span> High</span>
+                  <span style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary)' }}></span> Normal / Medium</span>
                 </div>
               </div>
 
               {/* Monthly grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} style={{ textAlign: 'center', fontWeight: 700, fontSize: '0.8rem', padding: '6px', color: 'var(--text-secondary)' }}>{day}</div>
+                  <div key={day} style={{ textAlign: 'center', fontWeight: 700, fontSize: '0.85rem', padding: '8px', color: 'var(--text-secondary)' }}>{day}</div>
                 ))}
+                
+                {/* Empty cells for prefix days (July 1, 2026 is Wednesday, so Sunday, Monday, Tuesday are empty) */}
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={`empty-${idx}`} style={{ minHeight: '100px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#F8FAFC', opacity: 0.4 }}></div>
+                ))}
+
                 {Array.from({ length: 31 }).map((_, idx) => {
                   const dateNum = idx + 1;
                   const dateStr = `2026-07-${dateNum < 10 ? '0' + dateNum : dateNum}`;
                   
-                  // Check calendar items
-                  const hasDeadline = requests.some(r => r.dueDate === dateStr);
+                  // Filter requests on this day
+                  const dayRequests = requests.filter(r => r.dueDate === dateStr);
                   const isToday = dateStr === '2026-07-18';
                   
                   return (
-                    <div key={idx} style={{ minHeight: '80px', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px', backgroundColor: isToday ? 'var(--primary-light)' : 'transparent', display: 'flex', flexDirection: 'column', justifySelf: 'stretch', justifyContent: 'space-between' }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.75rem', color: isToday ? 'var(--primary)' : 'var(--text-secondary)' }}>{dateNum}</div>
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        minHeight: '100px', 
+                        border: isToday ? '2px solid var(--primary)' : '1px solid var(--border-color)', 
+                        borderRadius: '6px', 
+                        padding: '8px', 
+                        backgroundColor: isToday ? 'var(--primary-light)' : '#FFFFFF', 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '6px' 
+                      }}
+                    >
+                      <div style={{ 
+                        fontWeight: 700, 
+                        fontSize: '0.75rem', 
+                        color: isToday ? 'var(--primary)' : 'var(--text-secondary)',
+                        backgroundColor: isToday ? 'rgba(30, 27, 75, 0.1)' : 'transparent',
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        {dateNum}
+                      </div>
                       
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        {hasDeadline && (
-                          <div style={{ fontSize: '0.6rem', padding: '2px', backgroundColor: 'var(--danger-light)', color: 'var(--danger)', borderRadius: '3px', fontWeight: 700 }} title="Drawing Deadline">Deadline</div>
-                        )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, overflowY: 'auto' }}>
+                        {dayRequests.map(r => {
+                          const badgeColor = r.priority === 'Urgent' ? 'var(--danger)' : r.priority === 'High' ? 'var(--warning)' : 'var(--primary)';
+                          const badgeBg = r.priority === 'Urgent' ? 'var(--danger-light)' : r.priority === 'High' ? 'var(--warning-light)' : 'var(--primary-light)';
+                          return (
+                            <div 
+                              key={r.id} 
+                              onClick={() => { setSelectedRequest(r); setDrawerOpen(true); }}
+                              style={{ 
+                                fontSize: '0.625rem', 
+                                padding: '3px 6px', 
+                                backgroundColor: badgeBg, 
+                                color: badgeColor, 
+                                borderRadius: '4px', 
+                                fontWeight: 700, 
+                                cursor: 'pointer',
+                                borderLeft: `3px solid ${badgeColor}`,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                transition: 'all 0.15s'
+                              }}
+                              title={`${r.id}: ${r.customerName} - ${r.projectName}`}
+                              onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(0.95)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'none'; }}
+                            >
+                              {r.id}
+                            </div>
+                          );
+                        })}
+                        
+                        {/* Static calendar milestones fallback */}
                         {dateNum === 16 && (
-                          <div style={{ fontSize: '0.6rem', padding: '2px', backgroundColor: 'var(--success-light)', color: 'var(--success)', borderRadius: '3px' }}>Revision Sent</div>
+                          <div style={{ fontSize: '0.625rem', padding: '3px 6px', backgroundColor: 'var(--success-light)', color: 'var(--success)', borderRadius: '4px', fontWeight: 700, borderLeft: '3px solid var(--success)' }}>
+                            Revision Sent
+                          </div>
                         )}
                         {dateNum === 20 && (
-                          <div style={{ fontSize: '0.6rem', padding: '2px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', borderRadius: '3px' }}>BOQ Submission</div>
+                          <div style={{ fontSize: '0.625rem', padding: '3px 6px', backgroundColor: '#F1F5F9', color: '#475569', borderRadius: '4px', fontWeight: 700, borderLeft: '3px solid #64748B' }}>
+                            BOQ Submission
+                          </div>
                         )}
                       </div>
                     </div>
@@ -3149,7 +3402,18 @@ function App() {
                   </div>
                 )}
                 <span className="drawer-subtitle">{selectedRequest.id} &bull; {selectedRequest.projectType} Project</span>
-                <h2 className="drawer-title">{selectedRequest.projectName}</h2>
+                <h2 className="drawer-title" style={{ margin: '4px 0' }}>{selectedRequest.projectName}</h2>
+                <div style={{ display: 'flex', gap: '16px', margin: '6px 0', flexWrap: 'wrap' }}>
+                  {selectedRequest.projectManager ? (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Project Manager: <strong>{selectedRequest.projectManager}</strong>
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Sales Manager: <strong>{selectedRequest.salesManager || selectedRequest.requestedBy?.replace(' (Sales Manager)', '') || 'Ritesh Deshmukh'}</strong>
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
                   {getStatusBadge(selectedRequest.status)}
                   {getPriorityBadge(selectedRequest.priority)}
@@ -3995,74 +4259,23 @@ function App() {
               )}
             </div>
 
-            <div className="drawer-footer">
-              <span className="drawer-footer-title">
-                <UserPlus size={16} style={{ color: 'var(--primary)' }} />
-                <span>Review & Assign Task</span>
-              </span>
-
-              <form onSubmit={handleAssignDesignerSubmit}>
-                <div className="assign-inputs">
-                  <div className="input-group">
-                    <label className="input-label">Select Designer</label>
-                    <select
-                      className="form-control"
-                      value={assigneeId}
-                      onChange={(e) => setAssigneeId(e.target.value)}
-                      required
-                    >
-                      <option value="">Choose designer...</option>
-                      {designers.map(d => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="input-group">
-                    <label className="input-label">Due Date SLA</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={assignDueDate}
-                      onChange={(e) => setAssignDueDate(e.target.value)}
-                      required
-                    />
-                  </div>
-
-
-                  <div className="input-group">
-                    <label className="input-label">Priority Level</label>
-                    <select
-                      className="form-control"
-                      value={assignPriority}
-                      onChange={(e) => setAssignPriority(e.target.value)}
-                    >
-                      <option value="Urgent">Urgent</option>
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Normal">Normal</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="input-group" style={{ marginBottom: '16px' }}>
-                  <label className="input-label">Internal Design Notes</label>
-                  <textarea
-                    className="form-control"
-                    rows="2"
-                    placeholder="Enter details about drafting coordinates, roof pitch guidelines..."
-                    value={assignNotes}
-                    onChange={(e) => setAssignNotes(e.target.value)}
-                  ></textarea>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <button type="submit" className="btn-primary" style={{ flex: 1 }}>Assign Designer</button>
-                  <button type="button" className="btn-primary" style={{ backgroundColor: 'var(--success)', flex: 1 }} onClick={() => updateRequestStatus('Approved', 'Approved drawings')}>Approve Design</button>
-                </div>
-              </form>
+            <div className="drawer-footer" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '16px 24px', borderTop: '1px solid var(--border-color)' }}>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                style={{ flex: 1, padding: '10px' }}
+                onClick={() => handleOpenAssignModal(selectedRequest)}
+              >
+                Assign Designer
+              </button>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                style={{ backgroundColor: 'var(--success)', flex: 1, padding: '10px' }} 
+                onClick={() => updateRequestStatus('Approved', 'Approved drawings')}
+              >
+                Approve Design
+              </button>
             </div>
           </div>
         </div>
@@ -4070,28 +4283,38 @@ function App() {
 
       {/* POPUP MODAL FOR ASSIGN DESIGNER */}
       {isAssignModalOpen && assignModalRequest && (
-        <div className="drawer-backdrop" onClick={() => { setIsAssignModalOpen(false); setAssignModalRequest(null); }} style={{ zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', width: '500px', padding: '24px', boxShadow: 'var(--shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Assign Designer - {assignModalRequest.id}</h3>
+        <div className="drawer-backdrop" onClick={() => { setIsAssignModalOpen(false); setAssignModalRequest(null); }} style={{ zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', width: '550px', padding: '28px', boxShadow: 'var(--shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <UserPlus size={18} style={{ color: 'var(--primary)' }} />
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Review & Assign Task</h3>
+              </div>
               <button className="btn-icon-only" onClick={() => { setIsAssignModalOpen(false); setAssignModalRequest(null); }}><X size={16} /></button>
             </div>
 
             <form onSubmit={handleAssignDesignerSubmit}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-                <div className="input-group">
-                  <label className="input-label" style={{ fontWeight: 600, fontSize: '0.8rem', display: 'block', marginBottom: '4px' }}>Designer</label>
-                  <select className="form-control" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)' }} value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} required>
-                    <option value="">Select designer...</option>
-                    {designers.map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="input-group">
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.8rem', display: 'block', marginBottom: '6px' }}>Select Designer</label>
+                    <select className="form-control" style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} required>
+                      <option value="">Choose designer...</option>
+                      {designers.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label" style={{ fontWeight: 600, fontSize: '0.8rem', display: 'block', marginBottom: '6px' }}>Due Date SLA</label>
+                    <input type="date" className="form-control" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} value={assignDueDate} onChange={(e) => setAssignDueDate(e.target.value)} required />
+                  </div>
                 </div>
 
                 <div className="input-group">
-                  <label className="input-label" style={{ fontWeight: 600, fontSize: '0.8rem', display: 'block', marginBottom: '4px' }}>Priority</label>
-                  <select className="form-control" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)' }} value={assignPriority} onChange={(e) => setAssignPriority(e.target.value)}>
+                  <label className="input-label" style={{ fontWeight: 600, fontSize: '0.8rem', display: 'block', marginBottom: '6px' }}>Priority Level</label>
+                  <select className="form-control" style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} value={assignPriority} onChange={(e) => setAssignPriority(e.target.value)}>
                     <option value="Urgent">Urgent</option>
                     <option value="High">High</option>
                     <option value="Medium">Medium</option>
@@ -4100,24 +4323,19 @@ function App() {
                 </div>
 
                 <div className="input-group">
-                  <label className="input-label" style={{ fontWeight: 600, fontSize: '0.8rem', display: 'block', marginBottom: '4px' }}>Expected Delivery Date</label>
-                  <input type="date" className="form-control" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)' }} value={assignDueDate} onChange={(e) => setAssignDueDate(e.target.value)} required />
+                  <label className="input-label" style={{ fontWeight: 600, fontSize: '0.8rem', display: 'block', marginBottom: '6px' }}>Internal Design Notes</label>
+                  <textarea className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} rows="3" value={assignNotes} onChange={(e) => setAssignNotes(e.target.value)} placeholder="Enter details about drafting coordinates, roof pitch guidelines..."></textarea>
                 </div>
 
-                <div className="input-group">
-                  <label className="input-label" style={{ fontWeight: 600, fontSize: '0.8rem', display: 'block', marginBottom: '4px' }}>Special Instructions</label>
-                  <textarea className="form-control" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)' }} rows="3" value={assignNotes} onChange={(e) => setAssignNotes(e.target.value)} placeholder="Provide fabrication detailing pitch requirements..."></textarea>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input type="checkbox" id="notifyDesigner" checked={notifyDesignerCheckbox} onChange={(e) => setNotifyDesignerCheckbox(e.target.checked)} />
-                  <label htmlFor="notifyDesigner" style={{ fontSize: '0.8rem', userSelect: 'none', cursor: 'pointer' }}>Notify Designer via Email & CRM Inbox</label>
+                  <label htmlFor="notifyDesigner" style={{ fontSize: '0.8rem', userSelect: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>Notify Designer via Email & CRM Inbox</label>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifySelf: 'flex-end', justifyContent: 'flex-end', gap: '10px' }}>
-                <button type="button" className="btn-secondary" style={{ padding: '8px 16px' }} onClick={() => { setIsAssignModalOpen(false); setAssignModalRequest(null); }}>Cancel</button>
-                <button type="submit" className="btn-primary" style={{ padding: '8px 20px' }}>Assign</button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button type="button" className="btn-secondary" style={{ padding: '9px 18px', fontSize: '0.85rem' }} onClick={() => { setIsAssignModalOpen(false); setAssignModalRequest(null); }}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ padding: '9px 24px', fontSize: '0.85rem' }}>Assign Designer</button>
               </div>
             </form>
           </div>
@@ -4126,7 +4344,7 @@ function App() {
 
       {/* POPUP MODAL FOR REVISION FORM */}
       {isRevisionModalOpen && revisionModalRequest && (
-        <div className="drawer-backdrop" onClick={() => { setIsRevisionModalOpen(false); setRevisionModalRequest(null); }} style={{ zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="drawer-backdrop" onClick={() => { setIsRevisionModalOpen(false); setRevisionModalRequest(null); }} style={{ zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', width: '750px', padding: '24px', boxShadow: 'var(--shadow-lg)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Request Design Revision - {revisionModalRequest.id}</h3>

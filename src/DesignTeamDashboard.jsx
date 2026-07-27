@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
+  Calendar,
   LayoutDashboard,
   Inbox,
   UploadCloud,
@@ -53,9 +54,19 @@ export default function DesignTeamDashboard({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
+  const [startDateFilter, setStartDateFilter] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [endDateFilter, setEndDateFilter] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
   // Modal & Popover States
   const [selectedReqForDetail, setSelectedReqForDetail] = useState(null);
+  const [activeDrawerTab, setActiveDrawerTab] = useState('Requirements');
+  const [submittalSubTab, setSubmittalSubTab] = useState('Revisions Needed');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [selectedReqForUpload, setSelectedReqForUpload] = useState(null);
   const [revisionModalReq, setRevisionModalReq] = useState(null);
@@ -112,7 +123,7 @@ export default function DesignTeamDashboard({
 
   const [uploadFileName, setUploadFileName] = useState('');
   const [uploadFileType, setUploadFileType] = useState('AutoCAD');
-  const [uploadDeliverableType, setUploadDeliverableType] = useState('2D Shop Drawing');
+  const [uploadDeliverableType, setUploadDeliverableType] = useState('2D Drawing');
   const [uploadVersion, setUploadVersion] = useState('v1.0');
   const [uploadFileSize, setUploadFileSize] = useState('14.2 MB');
   const [uploadNotes, setUploadNotes] = useState('');
@@ -273,9 +284,11 @@ export default function DesignTeamDashboard({
       const matchesStatus = statusFilter === 'All' ? true : r.status === statusFilter;
       const matchesPriority = priorityFilter === 'All' ? true : r.priority === priorityFilter;
 
-      return isPEB && isAssignedToCurrent && matchesSearch && matchesStatus && matchesPriority;
+      const matchesDateRange = (!startDateFilter || r.dueDate >= startDateFilter) && (!endDateFilter || r.dueDate <= endDateFilter);
+
+      return isPEB && isAssignedToCurrent && matchesSearch && matchesStatus && matchesPriority && matchesDateRange;
     });
-  }, [requests, selectedDesignerName, searchTerm, statusFilter, priorityFilter]);
+  }, [requests, selectedDesignerName, searchTerm, statusFilter, priorityFilter, startDateFilter, endDateFilter]);
 
   // Summary Metrics for Design Team (PEB Projects Only)
   const metrics = useMemo(() => {
@@ -456,10 +469,9 @@ export default function DesignTeamDashboard({
         <ul className="sidebar-menu" style={{ listStyle: 'none', padding: '16px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
           {[
             { id: 'Dashboard', label: 'Team Dashboard', icon: <LayoutDashboard size={18} />, badge: null },
-            { id: 'Requirements', label: 'Revision Requests', icon: <Inbox size={18} />, badge: metrics.totalAssigned },
-            { id: 'Upload Submittals', label: 'Upload & Submit File', icon: <UploadCloud size={18} />, badge: null },
-            { id: 'Review Queue', label: 'Waiting Head Review', icon: <Clock size={18} />, badge: metrics.pendingReview },
-            { id: 'Head Revisions', label: 'Head Feedback & Revisions', icon: <AlertTriangle size={18} />, badge: metrics.revisionNeeded > 0 ? metrics.revisionNeeded : null },
+            { id: 'Requirements', label: 'Assigned Tasks', icon: <Inbox size={18} />, badge: metrics.totalAssigned },
+
+            { id: 'Submittal Status', label: 'Revision Request', icon: <Clock size={18} />, badge: (metrics.pendingReview + metrics.revisionNeeded) > 0 ? (metrics.pendingReview + metrics.revisionNeeded) : null },
             { id: 'File Manager', label: 'File Manager', icon: <FolderOpen size={18} />, badge: uploadedFilesList.length },
             { id: 'Tesco ERM', label: 'Tesco ERM', icon: <Database size={18} />, badge: null }
           ].map(item => (
@@ -541,10 +553,8 @@ export default function DesignTeamDashboard({
           <div>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.3px' }}>
               {currentTab === 'Dashboard' && 'Design Team Dashboard'}
-              {currentTab === 'Requirements' && 'Client Revision Requests & Head Assignments'}
-              {currentTab === 'Upload Submittals' && 'Upload Design Files & Submit for Review'}
-              {currentTab === 'Review Queue' && 'Submittals Awaiting Design Head Review'}
-              {currentTab === 'Head Revisions' && 'Design Head Feedback & Revision Requests'}
+              {currentTab === 'Requirements' && 'Assigned Tasks & Project Requirements'}
+              {currentTab === 'Submittal Status' && 'Revision Request & Design Head Feedback'}
               {currentTab === 'File Manager' && 'File Manager & Submittal History'}
               {currentTab === 'Tesco ERM' && 'Tesco ERM Integration & Enterprise Sync'}
             </h1>
@@ -698,61 +708,59 @@ export default function DesignTeamDashboard({
         {/* MAIN SCROLLABLE CONTENT */}
         <div style={{ flex: 1, padding: '28px 32px', overflowY: 'auto', backgroundColor: '#F8FAFC' }}>
           
-          {/* SEARCH & FILTERS BAR (Hidden on Upload Submittals tab) */}
-          {currentTab !== 'Upload Submittals' && (
-            <div style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', boxShadow: 'var(--shadow-sm)' }}>
+          {/* GORGEOUS CALENDAR DATE RANGE FILTER BAR */}
+          {true && (
+            <div style={{ backgroundColor: '#FFFFFF', padding: '18px 24px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', boxShadow: 'var(--shadow-sm)' }}>
               
-              {/* Search input */}
-              <div style={{ position: 'relative', flex: 1, maxWidth: '420px' }}>
-                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                <input
-                  type="text"
-                  placeholder="Search by Project Name, REQ ID, Customer..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
-                    fontSize: '0.85rem',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              {/* Status & Priority dropdowns */}
+              {/* Left Side: Calendar Icon and Heading */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748B' }}>Status:</span>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem', fontWeight: 600, color: '#1E293B', cursor: 'pointer' }}
-                  >
-                    <option value="All">All Statuses</option>
-                    <option value="Assigned">Assigned from Head</option>
-                    <option value="In Progress">In Production</option>
-                    <option value="Pending Review">Waiting Head Review</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Revision Requested">Revision Requested</option>
-                  </select>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Calendar size={20} />
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748B' }}>Priority:</span>
-                  <select
-                    value={priorityFilter}
-                    onChange={(e) => setPriorityFilter(e.target.value)}
-                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem', fontWeight: 600, color: '#1E293B', cursor: 'pointer' }}
-                  >
-                    <option value="All">All Priorities</option>
-                    <option value="Urgent">Urgent</option>
-                    <option value="High">High</option>
-                    <option value="Normal">Normal</option>
-                  </select>
+                <div>
+                  <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Filter Tasks by Date</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '2px 0 0 0' }}>Select custom date range or use quick presets</p>
                 </div>
               </div>
+
+              {/* Center: Date Inputs */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>Start:</span>
+                  <input
+                    type="date"
+                    value={startDateFilter}
+                    onChange={(e) => setStartDateFilter(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem', fontWeight: 600, color: '#1E293B', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>End:</span>
+                  <input
+                    type="date"
+                    value={endDateFilter}
+                    onChange={(e) => setEndDateFilter(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem', fontWeight: 600, color: '#1E293B', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              {/* Right Side: Quick Filters & Reset */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {(startDateFilter || endDateFilter) && (
+                  <button
+                    onClick={() => {
+                      setStartDateFilter('');
+                      setEndDateFilter('');
+                    }}
+                    style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid #FEE2E2', backgroundColor: '#FEF2F2', color: '#991B1B', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+
             </div>
           )}
 
@@ -760,74 +768,60 @@ export default function DesignTeamDashboard({
           {currentTab === 'Dashboard' && (
             <div>
               {/* Summary Cards Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '28px' }}>
-                
-                {/* Card 1: Assigned Design */}
-                <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '14px', padding: '20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assigned Design</span>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#E0E7FF', color: '#3730A3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Inbox size={18} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '28px' }}>
+                {[
+                  { title: 'Assigned Design', value: metrics.totalAssigned, icon: <Inbox size={20} />, trend: `${metrics.urgentCount} Urgent`, desc: 'Needs drafting', color: '#3730A3', bg: '#E0E7FF', onClick: () => { setCurrentTab('Requirements'); setStatusFilter('All'); } },
+                  { title: 'In Progress', value: metrics.inProgress, icon: <Clock size={20} />, trend: 'Active draft', desc: 'Drawing on board', color: '#1D4ED8', bg: '#DBEAFE', onClick: () => { setCurrentTab('Requirements'); setStatusFilter('In Progress'); } },
+                  { title: 'Waiting Review', value: metrics.pendingReview, icon: <FileCheck size={20} />, trend: 'Awaiting Head', desc: 'Submittals sent', color: '#D97706', bg: '#FEF3C7', onClick: () => { setCurrentTab('Submittal Status'); setSubmittalSubTab('Awaiting Review'); } },
+                  { title: 'Revision Needed', value: metrics.revisionNeeded, icon: <AlertTriangle size={20} />, trend: 'Needs fix', desc: 'Head feedback', color: '#EF4444', bg: '#FEE2E2', onClick: () => { setCurrentTab('Submittal Status'); setSubmittalSubTab('Revisions Needed'); } },
+                  { title: 'Approved Designs', value: metrics.approved, icon: <CheckCircle2 size={20} />, trend: 'Fully ready', desc: 'Release to site', color: '#166534', bg: '#DCFCE7', onClick: () => { setCurrentTab('File Manager'); } }
+                ].map((kpi, idx) => (
+                  <div
+                    key={idx}
+                    onClick={kpi.onClick}
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      boxShadow: 'var(--shadow-sm)',
+                      minHeight: '120px',
+                      cursor: 'pointer',
+                      transition: 'transform var(--transition-fast), box-shadow var(--transition-fast)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{kpi.title}</span>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: kpi.bg, color: kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {kpi.icon}
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '12px' }}>
+                      <h3 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, color: '#1E293B', fontFamily: 'var(--font-heading)' }}>{kpi.value}</h3>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', fontSize: '0.68rem' }}>
+                        <span style={{ color: kpi.color, fontWeight: 700 }}>{kpi.trend}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{kpi.desc}</span>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#1E293B', lineHeight: 1 }}>{metrics.totalAssigned}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748B', display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                    <span>Assigned requirements</span>
-                    <span style={{ color: '#3730A3', fontWeight: 700 }}>{metrics.urgentCount} Urgent</span>
-                  </div>
-                </div>
-
-                {/* Card 2: In Progress */}
-                <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '14px', padding: '20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>In Progress</span>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#DBEAFE', color: '#1D4ED8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Clock size={18} />
-                    </div>
-                  </div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#1E293B', lineHeight: 1 }}>{metrics.inProgress}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748B', display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                    <span>Active drafting work</span>
-                    <span style={{ color: '#1D4ED8', fontWeight: 700 }}>Drawing in progress</span>
-                  </div>
-                </div>
-
-                {/* Card 3: Waiting for Review */}
-                <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '14px', padding: '20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Waiting for Review</span>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <FileCheck size={18} />
-                    </div>
-                  </div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#1E293B', lineHeight: 1 }}>{metrics.pendingReview}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748B', display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                    <span>Uploaded submittals</span>
-                    <span style={{ color: '#D97706', fontWeight: 700 }}>Awaiting Head sign-off</span>
-                  </div>
-                </div>
-
-                {/* Card 4: Completed Design */}
-                <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '14px', padding: '20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Completed Design</span>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#DCFCE7', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CheckCircle2 size={18} />
-                    </div>
-                  </div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#1E293B', lineHeight: 1 }}>{metrics.approved}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748B', display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                    <span>Approved submittals</span>
-                    <span style={{ color: '#166534', fontWeight: 700 }}>Fully approved</span>
-                  </div>
-                </div>
-
+                ))}
               </div>
 
-              {/* Main Split Content: Active Requirements & Recent Uploads */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+              {/* Main Content Stack: Active Requirements & Recent Uploads below it */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 
-                {/* Left: Active Requirements Table */}
+                {/* Active Requirements Table */}
                 <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid var(--border-color)', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div>
@@ -909,34 +903,38 @@ export default function DesignTeamDashboard({
                   </div>
                 </div>
 
-                {/* Right: Upload Submittals Timeline & Queue */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  
-                  {/* Card: Recent Submittals */}
-                  <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid var(--border-color)', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', marginBottom: '14px' }}>Recent File Submittals</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {uploadedFilesList.slice(0, 4).map(sub => (
-                        <div key={sub.id} style={{ padding: '12px', borderRadius: '10px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 700, fontSize: '0.82rem', color: '#1E3A8A' }}>{sub.fileName}</span>
-                            <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: '#DBEAFE', color: '#1E40AF', fontSize: '0.68rem', fontWeight: 700 }}>
-                              {sub.version}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>{sub.projectName} ({sub.deliverable})</div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: '#94A3B8', marginTop: '2px' }}>
-                            <span>Submitted: {sub.submittedDate}</span>
-                            <span style={{ fontWeight: 700, color: sub.status.includes('Approved') ? '#166534' : '#D97706' }}>{sub.status}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                {/* Card: Recent Submittals */}
+                <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid var(--border-color)', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Recent File Submittals</h3>
+                    <button 
+                      onClick={() => setCurrentTab('File Manager')}
+                      style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      View All ({uploadedFilesList.length}) <ChevronRight size={14} />
+                    </button>
                   </div>
-
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                    {uploadedFilesList.slice(0, 4).map(sub => (
+                      <div key={sub.id} style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E3A8A' }} title={sub.fileName}>{sub.fileName}</span>
+                          <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: '#DBEAFE', color: '#1E40AF', fontSize: '0.68rem', fontWeight: 700, flexShrink: 0 }}>
+                            {sub.version}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>{sub.projectName} &bull; {sub.deliverable}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#94A3B8', marginTop: '4px' }}>
+                          <span>Submitted: {sub.submittedDate}</span>
+                          <span style={{ fontWeight: 700, color: sub.status.includes('Approved') ? '#166534' : '#D97706' }}>{sub.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
               </div>
+
             </div>
           )}
 
@@ -1030,310 +1028,151 @@ export default function DesignTeamDashboard({
             </div>
           )}
 
-          {/* TAB 3: UPLOAD SUBMITTALS WORKSPACE */}
-          {currentTab === 'Upload Submittals' && (
-            <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid var(--border-color)', padding: '32px', boxShadow: 'var(--shadow-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#DBEAFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <UploadCloud size={24} />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Design File Submittal Hub</h2>
-                  <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '2px 0 0 0' }}>Upload completed AutoCAD layout, 3D renders, or calculation sheets for Head Review</p>
-                </div>
-              </div>
 
-              <form onSubmit={handleUploadSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Select Project Requirement */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    Select Requirement / Project *
-                  </label>
-                  <select
-                    required
-                    value={selectedReqForUpload ? selectedReqForUpload.id : ''}
-                    onChange={(e) => {
-                      const found = requests.find(r => r.id === e.target.value);
-                      if (found) {
-                        setSelectedReqForUpload(found);
-                        setUploadFileName(`${found.projectName.replace(/\s+/g, '_')}_Layout_${uploadVersion}.dwg`);
-                      }
-                    }}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.88rem', outline: 'none' }}
-                  >
-                    <option value="">-- Choose Project Requirement --</option>
-                    {designerRequests.map(r => (
-                      <option key={r.id} value={r.id}>
-                        [{r.id}] {r.projectName} - {r.service} ({r.priority} Priority)
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
-                {selectedReqForUpload && (
-                  <div style={{ padding: '14px', borderRadius: '8px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#334155' }}>
-                    <div style={{ fontWeight: 700, color: '#1E3A8A', marginBottom: '4px' }}>Requirement Overview:</div>
-                    <div>Client: <strong>{selectedReqForUpload.customerName}</strong></div>
-                    <div>Required Scope: <strong>{selectedReqForUpload.service} ({selectedReqForUpload.requirement})</strong></div>
-                    <div>Target Due Date: <strong>{selectedReqForUpload.dueDate}</strong></div>
-                  </div>
-                )}
-
-                {/* Deliverable Type & Version */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                      Deliverable Category
-                    </label>
-                    <select
-                      value={uploadDeliverableType}
-                      onChange={(e) => setUploadDeliverableType(e.target.value)}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
-                    >
-                      <option value="2D GA Layout">2D GA Layout Drawing</option>
-                      <option value="2D Shop Drawing">2D Shop & Detailing Drawing</option>
-                      <option value="3D Exterior Render">3D Exterior Architectural Render</option>
-                      <option value="Structural Calculation">STAAD Pro / Calculation Sheet</option>
-                      <option value="BOQ & Material List">BOQ & Bill of Materials</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                      File Format
-                    </label>
-                    <select
-                      value={uploadFileType}
-                      onChange={(e) => setUploadFileType(e.target.value)}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
-                    >
-                      <option value="AutoCAD">AutoCAD (.DWG)</option>
-                      <option value="PDF">PDF Drawing Package (.PDF)</option>
-                      <option value="3D Model">3D Model (.SKP / .FBX)</option>
-                      <option value="STAAD">STAAD Pro (.STD)</option>
-                      <option value="ZIP Archive">Zip Package (.ZIP)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                      Revision Tag
-                    </label>
-                    <select
-                      value={uploadVersion}
-                      onChange={(e) => setUploadVersion(e.target.value)}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: 700 }}
-                    >
-                      <option value="v1.0">v1.0 (Initial Submittal)</option>
-                      <option value="v1.1">v1.1 (Minor Correction)</option>
-                      <option value="v2.0">v2.0 (Head Revision)</option>
-                      <option value="v3.0">v3.0 (Final Approval)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Drag & Drop File Upload Component */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    Upload CAD / Design Attachment *
-                  </label>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    style={{ display: 'none' }}
-                    accept=".dwg,.dxf,.pdf,.skp,.std,.zip,.rar,.png,.jpg"
-                  />
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{ 
-                      border: '2px dashed #93C5FD', 
-                      borderRadius: '12px', 
-                      backgroundColor: selectedFileObj ? '#F0FDF4' : '#EFF6FF', 
-                      borderColor: selectedFileObj ? '#86EFAC' : '#93C5FD',
-                      padding: '24px', 
-                      textAlign: 'center', 
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <UploadCloud size={32} color={selectedFileObj ? '#166534' : '#2563EB'} style={{ marginBottom: '8px' }} />
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: selectedFileObj ? '#166534' : '#1E3A8A' }}>
-                      {selectedFileObj ? `Selected: ${selectedFileObj.name}` : 'Click to select CAD drawing file from your system'}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>
-                      Supports DWG, PDF, SKP, STD, ZIP up to 100MB
-                    </div>
+          {/* TAB 4: SUBMITTAL STATUS & FEEDBACK */}
+          {currentTab === 'Submittal Status' && (
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid var(--border-color)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
+              
+              {/* Sub-tabs header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  {[
+                    { id: 'Revisions Needed', label: `Revision (${metrics.revisionNeeded})` },
+                    { id: 'Approved', label: `Approved Designs (${metrics.approved})` }
+                  ].map(tab => (
                     <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                      style={{ marginTop: '12px', padding: '6px 14px', borderRadius: '6px', border: '1px solid #2563EB', backgroundColor: '#FFFFFF', color: '#2563EB', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
+                      key={tab.id}
+                      onClick={() => setSubmittalSubTab(tab.id)}
+                      style={{
+                        padding: '8px 16px',
+                        fontSize: '0.85rem',
+                        fontWeight: submittalSubTab === tab.id ? 700 : 500,
+                        backgroundColor: submittalSubTab === tab.id ? 'var(--primary-light)' : 'transparent',
+                        color: submittalSubTab === tab.id ? 'var(--primary)' : 'var(--text-secondary)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
                     >
-                      {selectedFileObj ? 'Change File' : 'Browse Files...'}
+                      {tab.label}
                     </button>
-                  </div>
+                  ))}
                 </div>
-
-                {/* Submittal File Name */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    Submittal File Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={uploadFileName}
-                    onChange={(e) => setUploadFileName(e.target.value)}
-                    placeholder="e.g. PEB_Warehouse_Structural_Layout_v1.0.dwg"
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
-                  />
-                </div>
-
-                {/* Engineer Notes */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    Notes & Technical Comments for Design Head
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={uploadNotes}
-                    onChange={(e) => setUploadNotes(e.target.value)}
-                    placeholder="Include structural assumptions, member section details, grid reference, or notes for Design Head review..."
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', outline: 'none' }}
-                  />
-                </div>
-
-                {/* Submit Action */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentTab('Dashboard')}
-                    style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(37,99,235,0.25)', display: 'flex', alignItems: 'center', gap: '8px' }}
-                  >
-                    <Send size={16} /> Submit to Design Head for Review
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* TAB 4: REVIEW QUEUE */}
-          {currentTab === 'Review Queue' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid var(--border-color)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Submittals Pending Head Review</h2>
-                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '2px 0 0 0' }}>Drawings uploaded by team waiting for Design Head sign-off</p>
               </div>
 
-              <div className="table-wrapper">
-                <table className="crm-table" style={{ width: '100%', fontSize: '0.82rem' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#F8FAFC', textAlign: 'left' }}>
-                      <th style={{ padding: '12px' }}>Project Name / ID</th>
-                      <th style={{ padding: '12px' }}>Deliverable</th>
-                      <th style={{ padding: '12px' }}>Uploaded File</th>
-                      <th style={{ padding: '12px' }}>Version</th>
-                      <th style={{ padding: '12px' }}>Designer</th>
-                      <th style={{ padding: '12px' }}>Status</th>
-                      <th style={{ padding: '12px', textAlign: 'center' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Pending Review' || r.status === 'Under Review')).map(r => (
-                      <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                        <td style={{ padding: '12px' }}>
-                          <div style={{ fontWeight: 800, color: '#1E3A8A' }}>{r.id}</div>
-                          <div style={{ fontWeight: 700 }}>{r.projectName}</div>
-                        </td>
-                        <td style={{ padding: '12px' }}>{r.service}</td>
-                        <td style={{ padding: '12px', fontWeight: 600, color: '#2563EB' }}>
-                          {r.attachments && r.attachments[0] ? r.attachments[0].name : `${r.projectName}_Layout.dwg`}
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: '#DBEAFE', color: '#1E40AF', fontWeight: 700, fontSize: '0.72rem' }}>
-                            v1.0
+
+              {submittalSubTab === 'Revisions Needed' && (
+                <div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Design Head Feedback & Revision Requests</h2>
+                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '2px 0 0 0' }}>PEB projects requiring drawing modifications based on Head comments</p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head'))).map(r => (
+                      <div key={r.id} style={{ border: '1px solid #FCA5A5', backgroundColor: '#FEF2F2', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: '#EF4444', color: '#FFFFFF', fontWeight: 800, fontSize: '0.78rem' }}>
+                              {r.id}
+                            </span>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#991B1B', margin: 0 }}>{r.projectName}</h3>
+                          </div>
+                          {renderStatusBadge(r.status)}
+                        </div>
+
+                        <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #FECACA', fontSize: '0.82rem', color: '#7F1D1D' }}>
+                          <strong>Design Head Comments:</strong>
+                          <div style={{ marginTop: '4px', fontStyle: 'italic' }}>
+                            "{r.comments?.find(c => c.sender === 'Design Head')?.text || 'Please update member sizing and verify sag rod spacing as per vibration requirements.'}"
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#991B1B', fontWeight: 600 }}>
+                            Assigned Designer: {r.assignedDesigner}
                           </span>
-                        </td>
-                        <td style={{ padding: '12px', fontWeight: 600 }}>{r.assignedDesigner}</td>
-                        <td style={{ padding: '12px' }}>{renderStatusBadge(r.status)}</td>
-                        <td style={{ padding: '12px', textAlign: 'center' }}>
                           <button
-                            onClick={() => setSelectedReqForDetail(r)}
-                            style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#334155', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer' }}
+                            onClick={() => handleOpenUpload(r)}
+                            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#DC2626', color: '#FFFFFF', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                           >
-                            Track Review
+                            <UploadCloud size={14} /> Re-Upload Revised Drawing (v2.0)
                           </button>
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     ))}
-                    {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Pending Review' || r.status === 'Under Review')).length === 0 && (
-                      <tr>
-                        <td colSpan="7" style={{ textAlign: 'center', padding: '32px', color: '#64748B' }}>
-                          No PEB drawings currently in review queue. Upload design files to trigger review.
-                        </td>
-                      </tr>
+
+                    {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head'))).length === 0 && (
+                      <div style={{ textAlign: 'center', padding: '48px', color: '#64748B' }}>
+                        <CheckCircle2 size={32} color="#166534" style={{ marginBottom: '8px' }} />
+                        <div style={{ fontWeight: 700, color: '#1E293B' }}>All clear! No pending revision requests from Design Head.</div>
+                      </div>
                     )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: HEAD REVISIONS */}
-          {currentTab === 'Head Revisions' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid var(--border-color)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Design Head Feedback & Revision Requests</h2>
-                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '2px 0 0 0' }}>PEB projects requiring drawing modifications based on Head comments</p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head'))).map(r => (
-                  <div key={r.id} style={{ border: '1px solid #FCA5A5', backgroundColor: '#FEF2F2', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: '#EF4444', color: '#FFFFFF', fontWeight: 800, fontSize: '0.78rem' }}>
-                          {r.id}
-                        </span>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#991B1B', margin: 0 }}>{r.projectName}</h3>
-                      </div>
-                      {renderStatusBadge(r.status)}
-                    </div>
-
-                    <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #FECACA', fontSize: '0.82rem', color: '#7F1D1D' }}>
-                      <strong>Design Head Comments:</strong>
-                      <div style={{ marginTop: '4px', fontStyle: 'italic' }}>
-                        "{r.comments?.find(c => c.sender === 'Design Head')?.text || 'Please update member sizing and verify sag rod spacing as per vibration requirements.'}"
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#991B1B', fontWeight: 600 }}>
-                        Assigned Designer: {r.assignedDesigner}
-                      </span>
-                      <button
-                        onClick={() => handleOpenUpload(r)}
-                        style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#DC2626', color: '#FFFFFF', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        <UploadCloud size={14} /> Re-Upload Revised Drawing (v2.0)
-                      </button>
-                    </div>
                   </div>
-                ))}
+                </div>
+              )}
 
-                {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head'))).length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '48px', color: '#64748B' }}>
-                    <CheckCircle2 size={32} color="#166534" style={{ marginBottom: '8px' }} />
-                    <div style={{ fontWeight: 700, color: '#1E293B' }}>All clear! No pending revision requests from Design Head.</div>
+              {submittalSubTab === 'Approved' && (
+                <div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Approved Design Records</h2>
+                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '2px 0 0 0' }}>Drawings and estimation sheets fully signed-off by Design Head</p>
                   </div>
-                )}
-              </div>
+
+                  <div className="table-wrapper">
+                    <table className="crm-table" style={{ width: '100%', fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#F8FAFC', textAlign: 'left' }}>
+                          <th style={{ padding: '12px' }}>Project Name / ID</th>
+                          <th style={{ padding: '12px' }}>Deliverable</th>
+                          <th style={{ padding: '12px' }}>Approved File</th>
+                          <th style={{ padding: '12px' }}>Designer</th>
+                          <th style={{ padding: '12px' }}>Status</th>
+                          <th style={{ padding: '12px', textAlign: 'center' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Approved' || r.status === 'Completed')).map(r => (
+                          <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ fontWeight: 800, color: '#1E3A8A' }}>{r.id}</div>
+                              <div style={{ fontWeight: 700 }}>{r.projectName}</div>
+                            </td>
+                            <td style={{ padding: '12px' }}>{r.service}</td>
+                            <td style={{ padding: '12px', fontWeight: 600, color: '#166534' }}>
+                              {r.attachments && r.attachments[0] ? r.attachments[0].name : `${r.projectName}_Layout_Approved.dwg`}
+                            </td>
+                            <td style={{ padding: '12px', fontWeight: 600 }}>{r.assignedDesigner}</td>
+                            <td style={{ padding: '12px' }}>
+                              <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#DCFCE7', color: '#166534', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <CheckCircle2 size={12} /> Approved
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px', textAlign: 'center' }}>
+                              <button
+                                onClick={() => setSelectedReqForDetail(r)}
+                                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#334155', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer' }}
+                              >
+                                View Specs
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Approved' || r.status === 'Completed')).length === 0 && (
+                          <tr>
+                            <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#64748B' }}>
+                              No approved PEB designs found.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
@@ -1568,132 +1407,334 @@ export default function DesignTeamDashboard({
       </div>
 
       {/* REQUIREMENT DETAIL MODAL */}
+      {/* REQUIREMENT DETAIL SLIDING DRAWER */}
       {selectedReqForDetail && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', width: '100%', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto', padding: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}>
-            
-            <button
-              onClick={() => setSelectedReqForDetail(null)}
-              style={{ position: 'absolute', right: '20px', top: '20px', background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}
-            >
-              <X size={20} />
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-              <span style={{ padding: '4px 10px', borderRadius: '6px', backgroundColor: '#E0E7FF', color: '#3730A3', fontWeight: 800, fontSize: '0.82rem' }}>
-                {selectedReqForDetail.id}
-              </span>
-              {renderStatusBadge(selectedReqForDetail.status)}
-              {renderPriorityBadge(selectedReqForDetail.priority)}
-            </div>
-
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0F172A', margin: '0 0 4px 0' }}>{selectedReqForDetail.projectName}</h2>
-            <div style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 600, marginBottom: '20px' }}>
-              Client: {selectedReqForDetail.customerName} &bull; Requested by Design Head
-            </div>
-
-            {/* Spec Sections */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-              <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Drawing Scope & Service</div>
-                <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '0.9rem' }}>{selectedReqForDetail.service}</div>
-                <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>Deliverable Format: <strong>{selectedReqForDetail.requirement}</strong></div>
-                <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>Target Due Date: <strong>{selectedReqForDetail.dueDate}</strong></div>
-              </div>
-
-              <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Project Location & Lead</div>
-                <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '0.85rem' }}>{selectedReqForDetail.location || 'MIDC Chakan Industrial Zone'}</div>
-                <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>Lead Reference: <strong>{selectedReqForDetail.leadId}</strong></div>
-                <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>Assigned Designer: <strong>{selectedReqForDetail.assignedDesigner}</strong></div>
-              </div>
-            </div>
-
-            {/* PEB Structural Details */}
-            {selectedReqForDetail.pebDetails && (
-              <div style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1E3A8A', marginBottom: '10px' }}>Structural Specification Matrix</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', fontSize: '0.78rem', color: '#1E40AF' }}>
-                  <div>Span: <strong>{selectedReqForDetail.pebDetails.span}</strong></div>
-                  <div>Length: <strong>{selectedReqForDetail.pebDetails.length}</strong></div>
-                  <div>Width: <strong>{selectedReqForDetail.pebDetails.width}</strong></div>
-                  <div>Clear Height: <strong>{selectedReqForDetail.pebDetails.height}</strong></div>
-                  <div>Built-up Area: <strong>{selectedReqForDetail.pebDetails.builtUpArea}</strong></div>
-                  <div>Roof System: <strong>{selectedReqForDetail.pebDetails.roofType}</strong></div>
-                  {selectedReqForDetail.pebDetails.craneRequired && (
-                    <div style={{ gridColumn: 'span 3' }}>Crane Specs: <strong>{selectedReqForDetail.pebDetails.craneRequired}</strong></div>
-                  )}
+        <div className="drawer-backdrop" onClick={() => setSelectedReqForDetail(null)}>
+          <div className="drawer" onClick={(e) => e.stopPropagation()}>
+            {/* Drawer Header */}
+            <div className="drawer-header" style={{ padding: '24px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div className="drawer-title-area" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span className="drawer-subtitle" style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>{selectedReqForDetail.id} &bull; {selectedReqForDetail.projectType || 'PEB'} Project</span>
+                <h2 className="drawer-title" style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', margin: 0 }}>{selectedReqForDetail.projectName}</h2>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  {renderStatusBadge(selectedReqForDetail.status)}
+                  {renderPriorityBadge(selectedReqForDetail.priority)}
                 </div>
               </div>
-            )}
+              <button className="action-btn" onClick={() => setSelectedReqForDetail(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '8px', borderRadius: '50%' }}>
+                <X size={20} />
+              </button>
+            </div>
 
-            {/* Attachments from Head */}
-            <div style={{ marginBottom: '20px' }}>
-              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>Input Attachments & Reference Files</h4>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                {selectedReqForDetail.attachments?.map((att, idx) => (
-                  <div key={idx} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem' }}>
-                    <Paperclip size={14} color="#2563EB" />
-                    <span style={{ fontWeight: 600, color: '#0F172A' }}>{att.name}</span>
-                    <span style={{ color: '#94A3B8' }}>({att.size})</span>
-                  </div>
+            {/* Drawer Navigation Tabs */}
+            <div style={{ padding: '0 24px' }}>
+              <div className="drawer-tabs" style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', paddingBottom: '2px', gap: '16px' }}>
+                {['Requirements', 'Attachments', 'Comments', 'Timeline', 'Submit Deliverable'].map(tab => (
+                  <button
+                    key={tab}
+                    className={`drawer-tab ${activeDrawerTab === tab ? 'active' : ''}`}
+                    onClick={() => setActiveDrawerTab(tab)}
+                    style={{
+                      padding: '12px 4px',
+                      fontSize: '0.85rem',
+                      fontWeight: activeDrawerTab === tab ? 600 : 500,
+                      color: activeDrawerTab === tab ? 'var(--primary)' : 'var(--text-secondary)',
+                      border: 'none',
+                      background: 'none',
+                      borderBottom: activeDrawerTab === tab ? '2px solid var(--primary)' : '2px solid transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {tab}
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* Conversation / Comments */}
-            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '16px', marginBottom: '20px' }}>
-              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '10px' }}>Comments & Review Notes</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '180px', overflowY: 'auto', marginBottom: '12px' }}>
-                {selectedReqForDetail.comments?.map((c, idx) => (
-                  <div key={idx} style={{ padding: '10px 12px', borderRadius: '8px', backgroundColor: c.sender === 'Design Head' ? '#FEF3C7' : '#F1F5F9', border: '1px solid #E2E8F0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700, color: '#334155' }}>
-                      <span>{c.sender} ({c.role})</span>
-                      <span style={{ color: '#94A3B8' }}>{c.time}</span>
+            {/* Drawer Body */}
+            <div className="drawer-body" style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+              {activeDrawerTab === 'Requirements' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div className="info-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Drawing Scope & Service</div>
+                        <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '0.9rem' }}>{selectedReqForDetail.service}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>Format: <strong>{selectedReqForDetail.requirement}</strong></div>
+                        <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>Due Date: <strong>{selectedReqForDetail.dueDate}</strong></div>
+                      </div>
+
+                      <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Project Location & Lead</div>
+                        <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '0.85rem' }}>{selectedReqForDetail.location || 'MIDC Chakan Industrial Zone'}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>Lead Reference: <strong>{selectedReqForDetail.leadId || 'N/A'}</strong></div>
+                        <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>Assigned Designer: <strong>{selectedReqForDetail.assignedDesigner}</strong></div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#0F172A', marginTop: '4px' }}>{c.text}</div>
-                  </div>
-                ))}
-              </div>
 
-              {/* Add comment input */}
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="text"
-                  placeholder="Add note for Design Head..."
-                  value={newCommentText}
-                  onChange={(e) => setNewCommentText(e.target.value)}
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
-                />
-                <button
-                  onClick={() => handleAddComment(selectedReqForDetail.id)}
-                  style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
-                >
-                  Send
-                </button>
-              </div>
+                    {/* PEB Structural Details */}
+                    {selectedReqForDetail.pebDetails && (
+                      <div style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '16px' }}>
+                        <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1E3A8A', marginBottom: '10px', margin: 0 }}>Structural Specification Matrix</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '0.8rem', color: '#1E40AF', marginTop: '8px' }}>
+                          <div>Span: <strong>{selectedReqForDetail.pebDetails.span}</strong></div>
+                          <div>Length: <strong>{selectedReqForDetail.pebDetails.length}</strong></div>
+                          <div>Width: <strong>{selectedReqForDetail.pebDetails.width}</strong></div>
+                          <div>Clear Height: <strong>{selectedReqForDetail.pebDetails.height}</strong></div>
+                          <div>Built-up Area: <strong>{selectedReqForDetail.pebDetails.builtUpArea}</strong></div>
+                          <div>Roof System: <strong>{selectedReqForDetail.pebDetails.roofType}</strong></div>
+                          {selectedReqForDetail.pebDetails.craneRequired && (
+                            <div style={{ gridColumn: 'span 3', marginTop: '4px' }}>Crane Specs: <strong>{selectedReqForDetail.pebDetails.craneRequired}</strong></div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeDrawerTab === 'Attachments' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '4px', margin: 0 }}>Input Attachments & Reference Files</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {selectedReqForDetail.attachments && selectedReqForDetail.attachments.length > 0 ? (
+                      selectedReqForDetail.attachments.map((att, idx) => (
+                        <div key={idx} style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Paperclip size={16} color="#2563EB" />
+                            <div>
+                              <span style={{ fontWeight: 600, color: '#0F172A', display: 'block' }}>{att.name}</span>
+                              <span style={{ color: '#94A3B8', fontSize: '0.72rem' }}>Size: {att.size} &bull; Type: {att.type || 'Unknown'}</span>
+                            </div>
+                          </div>
+                          <button 
+                            className="action-btn"
+                            onClick={() => alert(`Downloading ${att.name}...`)}
+                            style={{ padding: '6px', borderRadius: '50%', color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer' }}
+                          >
+                            <Download size={16} />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8', fontSize: '0.8rem', border: '1px dashed #E2E8F0', borderRadius: '8px' }}>
+                        No reference attachments uploaded.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeDrawerTab === 'Comments' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
+                  <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>Comments & Review Notes</h4>
+                  
+                  {/* Comments list */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, overflowY: 'auto', paddingRight: '4px', maxHeight: '350px' }}>
+                    {selectedReqForDetail.comments && selectedReqForDetail.comments.length > 0 ? (
+                      selectedReqForDetail.comments.map((c, idx) => (
+                        <div key={idx} style={{ padding: '12px', borderRadius: '10px', backgroundColor: c.sender === 'Design Head' ? '#FEF3C7' : '#F1F5F9', border: '1px solid #E2E8F0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                            <span>{c.sender} ({c.role})</span>
+                            <span style={{ color: '#94A3B8', fontWeight: 500 }}>{c.time}</span>
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: '#0F172A', lineHeight: '1.4' }}>{c.text}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+                        No comments yet. Start a discussion with the Design Head below.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add comment box */}
+                  <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #E2E8F0', paddingTop: '16px' }}>
+                    <input
+                      type="text"
+                      placeholder="Add note or update for Design Head..."
+                      value={newCommentText}
+                      onChange={(e) => setNewCommentText(e.target.value)}
+                      onKeyDown={(e) => { if(e.key === 'Enter') handleAddComment(selectedReqForDetail.id); }}
+                      style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', outline: 'none' }}
+                    />
+                    <button
+                      onClick={() => handleAddComment(selectedReqForDetail.id)}
+                      style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeDrawerTab === 'Timeline' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '8px', margin: 0 }}>Project Activity Timeline</h4>
+                  <div style={{ position: 'relative', paddingLeft: '24px', borderLeft: '2px solid #E2E8F0', marginLeft: '8px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {selectedReqForDetail.history && selectedReqForDetail.history.length > 0 ? (
+                      selectedReqForDetail.history.map((h, idx) => (
+                        <div key={idx} style={{ position: 'relative' }}>
+                          {/* Dot indicator */}
+                          <div style={{ position: 'absolute', left: '-31px', top: '2px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#2563EB', border: '3px solid #FFFFFF' }} />
+                          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>{h.time}</div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1E293B', marginTop: '2px' }}>{h.title}</div>
+                          <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px', lineHeight: '1.4' }}>{h.desc}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ position: 'relative' }}>
+                        <div style={{ position: 'absolute', left: '-31px', top: '2px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#2563EB', border: '3px solid #FFFFFF' }} />
+                        <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Assignment Time</div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1E293B', marginTop: '2px' }}>Requirement Assigned</div>
+                        <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px' }}>Assigned to {selectedReqForDetail.assignedDesigner} by Design Head.</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeDrawerTab === 'Submit Deliverable' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>Submit Design Deliverable</h4>
+                  <p style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '-8px', margin: 0 }}>
+                    Upload your CAD layouts, models, structural analysis files, or PDFs to submit directly to the Design Head for review.
+                  </p>
+
+                  <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Select Design File</label>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <button 
+                            type="button"
+                            onClick={() => modalFileInputRef.current?.click()}
+                            style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#334155', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
+                          >
+                            Choose File
+                          </button>
+                          <span style={{ fontSize: '0.8rem', color: uploadFileName ? '#0F172A' : '#94A3B8', fontWeight: uploadFileName ? 600 : 400 }}>
+                            {uploadFileName || 'No file selected (Supports .dwg, .pdf, .std, .skp, etc.)'}
+                          </span>
+                          <input 
+                            type="file"
+                            ref={modalFileInputRef}
+                            style={{ display: 'none' }}
+                            onChange={handleFileSelect}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Software Engine</label>
+                          <select 
+                            value={uploadFileType}
+                            onChange={(e) => setUploadFileType(e.target.value)}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
+                          >
+                            <option value="AutoCAD">AutoCAD (2D Layouts)</option>
+                            <option value="STAAD">STAAD.Pro (Structural Analysis)</option>
+                            <option value="3D Model">Tekla / SketchUp (3D Models)</option>
+                            <option value="PDF">PDF Report / Calculations</option>
+                            <option value="ZIP Archive">ZIP Package (Combined deliverables)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Deliverable Type</label>
+                          <select 
+                            value={uploadDeliverableType}
+                            onChange={(e) => setUploadDeliverableType(e.target.value)}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
+                          >
+                            <option value="2D Drawing">2D Drawing / GA Layout</option>
+                            <option value="3D Structural Model">3D Structural Model / BIM</option>
+                            <option value="Structural Calculation Report">Design / Member Estimation Calcs</option>
+                            <option value="Fabrication Details">Fabrication / Erection details</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Submission Version</label>
+                          <input 
+                            type="text" 
+                            value={uploadVersion}
+                            onChange={(e) => setUploadVersion(e.target.value)}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>File Size</label>
+                          <input 
+                            type="text" 
+                            disabled
+                            value={uploadFileSize}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#F1F5F9', fontSize: '0.8rem', color: '#64748B' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Drafting assumptions & submittal notes</label>
+                        <textarea 
+                          rows={3}
+                          placeholder="Include assumptions, code standards used, load specs, or details..."
+                          value={uploadNotes}
+                          onChange={(e) => setUploadNotes(e.target.value)}
+                          style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem', outline: 'none' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            setSelectedReqForUpload(selectedReqForDetail);
+                            setTimeout(() => {
+                              const eventMock = { preventDefault: () => {} };
+                              handleUploadSubmit(eventMock);
+                            }, 50);
+                          }}
+                          style={{ padding: '10px 24px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <UploadCloud size={16} /> Submit Submittal File
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Modal Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #E2E8F0', paddingTop: '16px' }}>
+            {/* Drawer Footer Actions */}
+            <div className="drawer-footer" style={{ padding: '20px 24px', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button
                 onClick={() => setSelectedReqForDetail(null)}
-                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', fontWeight: 600 }}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 Close
               </button>
+              {selectedReqForDetail.status === 'Assigned' && (
+                <button
+                  onClick={() => {
+                    handleStartWork(selectedReqForDetail.id);
+                    setSelectedReqForDetail(prev => ({ ...prev, status: 'In Progress' }));
+                  }}
+                  style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#10B981', color: '#FFFFFF', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  Start Work
+                </button>
+              )}
               <button
-                onClick={() => {
-                  const req = selectedReqForDetail;
-                  setSelectedReqForDetail(null);
-                  handleOpenUpload(req);
-                }}
-                style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                onClick={() => setActiveDrawerTab('Submit Deliverable')}
+                style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
               >
-                <UploadCloud size={16} /> Upload Design Drawing
+                <UploadCloud size={16} /> Submit Deliverable
               </button>
             </div>
-
           </div>
         </div>
       )}

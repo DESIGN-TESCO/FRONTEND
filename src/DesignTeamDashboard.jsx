@@ -471,7 +471,7 @@ export default function DesignTeamDashboard({
             { id: 'Dashboard', label: 'Team Dashboard', icon: <LayoutDashboard size={18} />, badge: null },
             { id: 'Requirements', label: 'Assigned Tasks', icon: <Inbox size={18} />, badge: metrics.totalAssigned },
 
-            { id: 'Submittal Status', label: 'Revision Request', icon: <Clock size={18} />, badge: (metrics.pendingReview + metrics.revisionNeeded) > 0 ? (metrics.pendingReview + metrics.revisionNeeded) : null },
+            { id: 'Submittal Status', label: 'Head Feedback', icon: <Clock size={18} />, badge: (metrics.pendingReview + metrics.revisionNeeded) > 0 ? (metrics.pendingReview + metrics.revisionNeeded) : null },
             { id: 'File Manager', label: 'File Manager', icon: <FolderOpen size={18} />, badge: uploadedFilesList.length },
             { id: 'Tesco ERM', label: 'Tesco ERM', icon: <Database size={18} />, badge: null }
           ].map(item => (
@@ -554,7 +554,7 @@ export default function DesignTeamDashboard({
             <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.3px' }}>
               {currentTab === 'Dashboard' && 'Design Team Dashboard'}
               {currentTab === 'Requirements' && 'Assigned Tasks & Project Requirements'}
-              {currentTab === 'Submittal Status' && 'Revision Request & Design Head Feedback'}
+              {currentTab === 'Submittal Status' && 'Head Feedback'}
               {currentTab === 'File Manager' && 'File Manager & Submittal History'}
               {currentTab === 'Tesco ERM' && 'Tesco ERM Integration & Enterprise Sync'}
             </h1>
@@ -564,32 +564,7 @@ export default function DesignTeamDashboard({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* Quick Upload Primary Action Button */}
-            <button
-              onClick={() => {
-                const firstAvailable = designerRequests[0] || requests[0];
-                if (firstAvailable) handleOpenUpload(firstAvailable);
-                else alert('No active design requests available for upload.');
-              }}
-              style={{
-                backgroundColor: '#2563EB',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '9px 16px',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                boxShadow: '0 4px 6px rgba(37, 99, 235, 0.25)',
-                transition: 'all 0.2s'
-              }}
-            >
-              <UploadCloud size={16} />
-              <span>Upload Design File</span>
-            </button>
+
 
             {/* Notification Badge & Interactive Popover */}
             <div ref={notificationRef} style={{ position: 'relative' }}>

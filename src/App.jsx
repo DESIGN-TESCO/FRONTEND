@@ -158,7 +158,7 @@ const initialDesigners = [
 const initialDesignRequests = [
   {
     id: 'REQ-2026-001',
-    leadId: 'LD-2026-9201',
+    leadId: 'LD-1001',
     customerName: 'Aries Warehousing Pvt. Ltd.',
     projectName: 'PEB Warehouse',
     projectType: 'PEB',
@@ -199,14 +199,14 @@ const initialDesignRequests = [
     ],
     history: [
       { title: 'Sales Manager submitted request', time: '2026-07-15 11:30 AM', desc: 'Ritesh Deshmukh submitted the PEB Enquiry Form.' },
-      { title: 'Design Head reviewed request', time: '2026-07-15 03:00 PM', desc: 'Review completed. Found valid with standard scope.' },
+      { title: 'Request & Assign Task', time: '2026-07-15 03:00 PM', desc: 'Review completed. Found valid with standard scope.' },
       { title: 'Assigned to Designer', time: '2026-07-15 03:15 PM', desc: 'Assigned to Amit Patel for 2D + 3D detail.' },
       { title: 'Designer started work', time: '2026-07-16 09:00 AM', desc: 'Amit Patel marked the task In Progress.' }
     ]
   },
   {
     id: 'REQ-2026-002',
-    leadId: 'LD-2026-8392',
+    leadId: 'LD-1002',
     customerName: 'Sharmila Housing Society',
     projectName: 'Residential Roof Structure',
     projectType: 'Mangalore Tile Roofing',
@@ -247,7 +247,7 @@ const initialDesignRequests = [
   },
   {
     id: 'REQ-2026-003',
-    leadId: 'LD-2026-4091',
+    leadId: 'LD-1003',
     customerName: 'Tesco Corporate Office Plaza',
     projectName: 'Commercial Glass Canopy',
     projectType: 'Glass Roofing',
@@ -293,7 +293,7 @@ const initialDesignRequests = [
   },
   {
     id: 'REQ-2026-004',
-    leadId: 'LD-2026-5712',
+    leadId: 'LD-1004',
     customerName: 'Choudhary Cold Storage',
     projectName: 'Thermal Food Storage Shed',
     projectType: 'PEB',
@@ -333,7 +333,7 @@ const initialDesignRequests = [
   },
   {
     id: 'REQ-2026-005',
-    leadId: 'LD-2026-1042',
+    leadId: 'LD-1005',
     customerName: 'Tata Steel Processing Ltd.',
     projectName: 'Processing Plant Shed',
     projectType: 'PEB',
@@ -374,7 +374,7 @@ const initialDesignRequests = [
   },
   {
     id: 'REQ-2026-006',
-    leadId: 'LD-2026-3024',
+    leadId: 'LD-1006',
     customerName: 'Jindal Steel & Power',
     projectName: 'Heavy Fabrication Workshop',
     projectType: 'PEB',
@@ -414,7 +414,7 @@ const initialDesignRequests = [
   },
   {
     id: 'REQ-2026-007',
-    leadId: 'LD-2026-4412',
+    leadId: 'LD-1007',
     customerName: 'Mahindra Logistics Hub',
     projectName: 'Logistics Sorting Terminal',
     projectType: 'PEB',
@@ -454,7 +454,7 @@ const initialDesignRequests = [
   },
   {
     id: 'REQ-2026-008',
-    leadId: 'LD-2026-5712',
+    leadId: 'LD-1008',
     customerName: 'AeroHub Terminal Complex',
     projectName: 'Steel Truss Space Frame',
     projectType: 'PEB',
@@ -580,14 +580,18 @@ const getLeadId = (r) => {
   if (!r) return 'N/A';
   if (r.leadId && r.leadId !== 'N/A') return r.leadId;
   const map = {
-    'REQ-2026-001': 'LD-2026-9201',
-    'REQ-2026-002': 'LD-2026-8392',
-    'REQ-2026-003': 'LD-2026-4091',
-    'REQ-2026-004': 'LD-2026-5712'
+    'REQ-2026-001': 'LD-1001',
+    'REQ-2026-002': 'LD-1002',
+    'REQ-2026-003': 'LD-1003',
+    'REQ-2026-004': 'LD-1004',
+    'REQ-2026-005': 'LD-1005',
+    'REQ-2026-006': 'LD-1006',
+    'REQ-2026-007': 'LD-1007',
+    'REQ-2026-008': 'LD-1008'
   };
   if (map[r.id]) return map[r.id];
   const hash = r.id ? r.id.split('-').reduce((acc, char) => acc + char.charCodeAt(0), 0) : Math.floor(Math.random() * 9000);
-  return `LD-2026-${1000 + (hash % 9000)}`;
+  return `LD-${1000 + (hash % 1000)}`;
 };
 
 function App() {
@@ -1875,7 +1879,7 @@ function App() {
 
               {/* ROW 2: APPROVAL QUEUE */}
               <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E293B', marginBottom: '16px' }}>Review & Approval Queue</h3>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E293B', marginBottom: '16px' }}>Request & Assign Task</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {requests.filter(r => r.status === 'Pending Review').map(r => (
                     <div 
@@ -1923,7 +1927,7 @@ function App() {
                         </span>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Due: {r.dueDate}</span>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button className="badge badge-completed" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); updateRequestStatus('Completed', `Approved drawings for ${r.id}`, r); }}>Approve</button>
+                          <button className="badge badge-completed" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); updateRequestStatus('Completed', `Approved drawings for ${r.id}`, r); }}>Assign task</button>
                           <button className="badge badge-urgent" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); updateRequestStatus('In Progress', `Rejected submittal for ${r.id}`, r); }}>Reject</button>
                         </div>
                       </div>
@@ -1957,14 +1961,14 @@ function App() {
                     </thead>
                     <tbody>
                       {requests.map(r => (
-                        <tr key={r.id}>
+                        <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => handleOpenDrawer(r)}>
                           <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{r.id}</td>
                           <td>
                             <div className="project-meta-cell">
                               <span className="project-name-text" style={{ fontSize: '0.85rem' }}>{r.projectType}</span>
                             </div>
                           </td>
-                          <td>{getLeadId(r)}</td>
+                          <td style={{ color: '#4F46E5', fontWeight: 600 }}>{getLeadId(r)}</td>
                           <td>
                             <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, backgroundColor: r.projectType === 'PEB' ? '#edf5ff' : '#ecfdf5', color: r.projectType === 'PEB' ? '#0f62fe' : '#059669' }}>
                               {r.projectType}
@@ -1987,11 +1991,12 @@ function App() {
                                 value={r.dueDate || ''}
                                 onChange={(e) => handleDateChange(r.id, e.target.value)}
                                 onBlur={() => setEditingDateId(null)}
+                                onClick={(e) => e.stopPropagation()}
                                 autoFocus
                                 style={{ padding: '4px 8px', fontSize: '0.85rem', border: '1px solid var(--primary)', borderRadius: '4px', outline: 'none', fontFamily: 'inherit', backgroundColor: '#FFFFFF', color: 'var(--text-main)' }}
                               />
                             ) : (
-                              <div style={{ cursor: 'pointer' }} onClick={() => setEditingDateId(r.id)} title="Click to change date">
+                              <div style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setEditingDateId(r.id); }} title="Click to change date">
                                 <span style={{ borderBottom: '1px dashed var(--text-muted)' }}>{r.dueDate}</span>
                               </div>
                             )}
@@ -1999,9 +2004,8 @@ function App() {
                           <td>{getStatusBadge(r.status)}</td>
                           <td>
                             <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                              <button className="btn-icon-only" title="View Details" onClick={() => handleOpenDrawer(r)}><Eye size={12} /></button>
-                              <button className="btn-icon-only" title="Review Settings" onClick={() => { setSelectedRequest(r); setDrawerOpen(true); setActiveDrawerTab('Revision History'); }}><Settings size={12} /></button>
-                              <button className="btn-icon-only" title="Comments" onClick={() => { setSelectedRequest(r); setDrawerOpen(true); setActiveDrawerTab('Comments'); }}><MessageSquare size={12} /></button>
+                              <button className="btn-icon-only" title="View Details" onClick={(e) => { e.stopPropagation(); handleOpenDrawer(r); }}><Eye size={12} /></button>
+                              <button className="btn-icon-only" title="Comments" onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); setDrawerOpen(true); setActiveDrawerTab('Comments'); }}><MessageSquare size={12} /></button>
                             </div>
                           </td>
                         </tr>
@@ -2182,7 +2186,7 @@ function App() {
                       {filteredRequests.map(r => (
                         <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => handleOpenDrawer(r)}>
                           <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{r.id}</td>
-                          <td>{getLeadId(r)}</td>
+                          <td style={{ color: '#4F46E5', fontWeight: 600 }}>{getLeadId(r)}</td>
                           <td style={{ fontWeight: 600 }}>{r.projectType}</td>
                           <td>
                             <span className="badge badge-new" style={{ backgroundColor: '#F1F5F9', color: '#475569', fontWeight: 600 }}>
@@ -3258,15 +3262,17 @@ function App() {
                       />
                     </div>
 
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>System Role</label>
-                      <input 
-                        type="text" 
-                        value={settingsRole} 
-                        onChange={(e) => setSettingsRole(e.target.value)}
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: '#F8FAFC', color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 500, outline: 'none' }} 
-                      />
-                    </div>
+                    {loginRole !== 'Design Head' && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>System Role</label>
+                        <input 
+                          type="text" 
+                          value={settingsRole} 
+                          onChange={(e) => setSettingsRole(e.target.value)}
+                          style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: '#F8FAFC', color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 500, outline: 'none' }} 
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -3398,7 +3404,7 @@ function App() {
               <div className="drawer-title-area">
                 {selectedRequest.status === 'Pending Review' && (
                   <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#8B5CF6', marginBottom: '6px' }}>
-                    Review & Approval Queue
+                    Request & Assign Task
                   </div>
                 )}
                 <span className="drawer-subtitle">{selectedRequest.id} &bull; {selectedRequest.projectType} Project</span>
@@ -3416,7 +3422,6 @@ function App() {
                 </div>
                 <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
                   {getStatusBadge(selectedRequest.status)}
-                  {getPriorityBadge(selectedRequest.priority)}
                 </div>
               </div>
               <button className="action-btn" onClick={() => setDrawerOpen(false)}>
@@ -4089,101 +4094,8 @@ function App() {
 
               {activeDrawerTab === 'Timeline' && (
                 <div>
-                  {/* Visual Stepper */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0 20px 0' }}>
-                    {[
-                      { 
-                        label: 'Request Submitted', 
-                        desc: `Submitted by ${selectedRequest.requestedBy || 'Sales Manager'}`,
-                        done: true, 
-                        active: false 
-                      },
-                      { 
-                        label: 'Assign Designer', 
-                        desc: selectedRequest.assignedDesigner !== 'Unassigned' 
-                          ? `Assigned to ${selectedRequest.assignedDesigner}` 
-                          : 'Pending assignment by Design Head',
-                        done: selectedRequest.assignedDesigner !== 'Unassigned',
-                        active: selectedRequest.assignedDesigner === 'Unassigned'
-                      },
-                      { 
-                        label: 'Designing Process', 
-                        desc: selectedRequest.status === 'In Progress' 
-                          ? 'Designer is actively drafting/modeling' 
-                          : ['In Progress', 'Pending Review', 'Completed', 'Approved'].includes(selectedRequest.status)
-                            ? 'Drafting and structural modeling complete'
-                            : 'Waiting for work to start',
-                        done: ['In Progress', 'Pending Review', 'Completed', 'Approved'].includes(selectedRequest.status),
-                        active: selectedRequest.status === 'Assigned'
-                      },
-                      { 
-                        label: 'Drawing Submitted', 
-                        desc: ['Pending Review', 'Completed', 'Approved'].includes(selectedRequest.status) 
-                          ? 'Design files submitted for review' 
-                          : 'Waiting for design submittal',
-                        done: ['Pending Review', 'Completed', 'Approved'].includes(selectedRequest.status),
-                        active: selectedRequest.status === 'In Progress'
-                      },
-                      { 
-                        label: 'Approve & Sent to Sales Manager', 
-                        desc: ['Completed', 'Approved'].includes(selectedRequest.status) 
-                          ? 'Approved! Design files dispatched to Sales Manager.' 
-                          : 'Awaiting design head approval',
-                        done: ['Completed', 'Approved'].includes(selectedRequest.status),
-                        active: selectedRequest.status === 'Pending Review'
-                      }
-                    ].map((step, idx, arr) => (
-                      <div key={idx} style={{ display: 'flex', gap: '16px', position: 'relative' }}>
-                        {/* Connector Line */}
-                        {idx < arr.length - 1 && (
-                          <div style={{ 
-                            position: 'absolute', 
-                            left: '11px', 
-                            top: '24px', 
-                            bottom: '-16px', 
-                            width: '2px', 
-                            backgroundColor: step.done && arr[idx+1].done ? 'var(--success)' : 'var(--border-color)',
-                            zIndex: 1
-                          }}></div>
-                        )}
-                        {/* Dot */}
-                        <div style={{ 
-                          width: '24px', 
-                          height: '24px', 
-                          borderRadius: '50%', 
-                          backgroundColor: step.done ? 'var(--success)' : step.active ? 'var(--primary)' : 'var(--bg-tertiary)',
-                          color: step.done || step.active ? '#FFFFFF' : 'var(--text-secondary)',
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          zIndex: 2,
-                          border: step.active ? '4px solid var(--primary-light)' : 'none',
-                          boxSizing: 'border-box'
-                        }}>
-                          {step.done ? '✓' : idx + 1}
-                        </div>
-                        {/* Content */}
-                        <div style={{ flex: 1, marginTop: '2px' }}>
-                          <h4 style={{ 
-                            fontSize: '0.85rem', 
-                            fontWeight: 700, 
-                            color: step.done || step.active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                            margin: 0 
-                          }}>{step.label}</h4>
-                          <p style={{ 
-                            fontSize: '0.75rem', 
-                            color: 'var(--text-muted)', 
-                            margin: '4px 0 0 0' 
-                          }}>{step.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
                   {/* Log history */}
-                  <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                  <div style={{ marginTop: '10px' }}>
                     <h4 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px' }}>Activity Log</h4>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       {selectedRequest.history?.map((hist, index) => (

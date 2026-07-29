@@ -298,7 +298,7 @@ export default function DesignTeamDashboard({
       inProgress: assigned.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length,
       pendingReview: assigned.filter(r => r.status === 'Pending Review' || r.status === 'Under Review').length,
       approved: assigned.filter(r => r.status === 'Approved' || r.status === 'Completed').length,
-      revisionNeeded: assigned.filter(r => r.status === 'Revision' || r.status === 'Revision Requested').length,
+      revisionNeeded: assigned.filter(r => r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head')).length,
       urgentCount: assigned.filter(r => r.priority === 'Urgent').length
     };
   }, [requests, selectedDesignerName]);
@@ -473,6 +473,7 @@ export default function DesignTeamDashboard({
 
             { id: 'Submittal Status', label: 'Head Feedback', icon: <Clock size={18} />, badge: (metrics.pendingReview + metrics.revisionNeeded) > 0 ? (metrics.pendingReview + metrics.revisionNeeded) : null },
             { id: 'File Manager', label: 'File Manager', icon: <FolderOpen size={18} />, badge: uploadedFilesList.length },
+            { id: 'Notifications', label: 'Notifications', icon: <Bell size={18} />, badge: teamNotifications.filter(n => !n.read).length || null },
             { id: 'Tesco ERM', label: 'Tesco ERM', icon: <Database size={18} />, badge: null }
           ].map(item => (
             <li key={item.id}>
@@ -556,6 +557,7 @@ export default function DesignTeamDashboard({
               {currentTab === 'Requirements' && 'Assigned Tasks & Project Requirements'}
               {currentTab === 'Submittal Status' && 'Head Feedback'}
               {currentTab === 'File Manager' && 'File Manager & Submittal History'}
+              {currentTab === 'Notifications' && 'Notifications'}
               {currentTab === 'Tesco ERM' && 'Tesco ERM Integration & Enterprise Sync'}
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '2px 0 0 0' }}>
@@ -684,7 +686,7 @@ export default function DesignTeamDashboard({
         <div style={{ flex: 1, padding: '28px 32px', overflowY: 'auto', backgroundColor: '#F8FAFC' }}>
           
           {/* GORGEOUS CALENDAR DATE RANGE FILTER BAR */}
-          {true && (
+          {currentTab !== 'Notifications' && (
             <div style={{ backgroundColor: '#FFFFFF', padding: '18px 24px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', boxShadow: 'var(--shadow-sm)' }}>
               
               {/* Left Side: Calendar Icon and Heading */}
@@ -825,11 +827,10 @@ export default function DesignTeamDashboard({
                       </thead>
                       <tbody>
                         {designerRequests.slice(0, 5).map(req => (
-                          <tr key={req.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <tr key={req.id} style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }} onClick={() => setSelectedReqForDetail(req)}>
                             <td style={{ padding: '12px' }}>
                               <div style={{ fontWeight: 800, color: '#1E3A8A' }}>{req.id}</div>
                               <div style={{ fontWeight: 600, color: '#0F172A' }}>{req.projectName}</div>
-                              <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{req.customerName}</div>
                             </td>
                             <td style={{ padding: '12px' }}>
                               <div style={{ fontWeight: 600 }}>{req.service}</div>
@@ -849,14 +850,14 @@ export default function DesignTeamDashboard({
                             <td style={{ padding: '12px', textAlign: 'center' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                 <button
-                                  onClick={() => setSelectedReqForDetail(req)}
+                                  onClick={(e) => { e.stopPropagation(); setSelectedReqForDetail(req); }}
                                   title="View Full Spec & Requirements"
                                   style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#334155', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer' }}
                                 >
                                   Specs
                                 </button>
                                 <button
-                                  onClick={() => handleOpenUpload(req)}
+                                  onClick={(e) => { e.stopPropagation(); handleOpenUpload(req); }}
                                   title="Upload Design File"
                                   style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                                 >
@@ -941,7 +942,7 @@ export default function DesignTeamDashboard({
                       {/* Title & Customer */}
                       <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A', margin: '0 0 4px 0' }}>{req.projectName}</h3>
                       <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600, marginBottom: '12px' }}>
-                        Client: {req.customerName} &bull; {req.projectType}
+                        {req.projectType}
                       </div>
 
                       {/* Deliverable Scope */}
@@ -1046,7 +1047,7 @@ export default function DesignTeamDashboard({
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head'))).map(r => (
+                    {requests.filter(r => r.projectType === 'PEB' && (selectedDesignerName === 'All Team' ? true : r.assignedDesigner === selectedDesignerName) && (r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head'))).map(r => (
                       <div key={r.id} style={{ border: '1px solid #FCA5A5', backgroundColor: '#FEF2F2', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1055,7 +1056,9 @@ export default function DesignTeamDashboard({
                             </span>
                             <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#991B1B', margin: 0 }}>{r.projectName}</h3>
                           </div>
-                          {renderStatusBadge(r.status)}
+                          <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#FEF3C7', color: '#92400E', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <AlertTriangle size={12} /> Revision Request
+                          </span>
                         </div>
 
                         <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #FECACA', fontSize: '0.82rem', color: '#7F1D1D' }}>
@@ -1079,7 +1082,7 @@ export default function DesignTeamDashboard({
                       </div>
                     ))}
 
-                    {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head'))).length === 0 && (
+                    {requests.filter(r => r.projectType === 'PEB' && (selectedDesignerName === 'All Team' ? true : r.assignedDesigner === selectedDesignerName) && (r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head'))).length === 0 && (
                       <div style={{ textAlign: 'center', padding: '48px', color: '#64748B' }}>
                         <CheckCircle2 size={32} color="#166534" style={{ marginBottom: '8px' }} />
                         <div style={{ fontWeight: 700, color: '#1E293B' }}>All clear! No pending revision requests from Design Head.</div>
@@ -1206,6 +1209,110 @@ export default function DesignTeamDashboard({
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: NOTIFICATIONS */}
+          {currentTab === 'Notifications' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: '16px 24px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Recent Alerts & Updates</h3>
+                  <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '2px 0 0 0' }}>
+                    {teamNotifications.filter(n => !n.read).length} unread notifications
+                  </p>
+                </div>
+                {teamNotifications.filter(n => !n.read).length > 0 && (
+                  <button
+                    onClick={() => setTeamNotifications(teamNotifications.map(n => ({ ...n, read: true })))}
+                    style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1D4ED8'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
+                  >
+                    Mark All as Read
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {teamNotifications.map(notif => {
+                  let badgeBg = '#EFF6FF';
+                  let badgeColor = '#2563EB';
+                  if (notif.type === 'revision') {
+                    badgeBg = '#FEF3C7';
+                    badgeColor = '#D97706';
+                  } else if (notif.type === 'approval' || notif.type === 'approved') {
+                    badgeBg = '#DEF7EC';
+                    badgeColor = '#059669';
+                  }
+                  
+                  return (
+                    <div 
+                      key={notif.id}
+                      onClick={() => {
+                        setTeamNotifications(teamNotifications.map(n => n.id === notif.id ? { ...n, read: true } : n));
+                        if (notif.type === 'revision') {
+                          setCurrentTab('Submittal Status');
+                        } else {
+                          setCurrentTab('Requirements');
+                        }
+                      }}
+                      style={{ 
+                        backgroundColor: notif.read ? '#FFFFFF' : '#F8FAFC', 
+                        border: notif.read ? '1px solid var(--border-color)' : '1px solid #BFDBFE', 
+                        borderRadius: '12px', 
+                        padding: '16px 20px', 
+                        display: 'flex', 
+                        alignItems: 'start', 
+                        gap: '16px', 
+                        cursor: 'pointer', 
+                        transition: 'all 0.2s',
+                        boxShadow: 'var(--shadow-sm)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'none';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                      }}
+                    >
+                      <div style={{ 
+                        backgroundColor: badgeBg, 
+                        color: badgeColor, 
+                        width: '36px', 
+                        height: '36px', 
+                        borderRadius: '50%', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        flexShrink: 0,
+                        fontWeight: 700,
+                        fontSize: '0.85rem'
+                      }}>
+                        {notif.type === 'revision' ? '⚠' : '✓'}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <strong style={{ fontSize: '0.88rem', color: '#0F172A', fontWeight: notif.read ? 600 : 700 }}>{notif.title}</strong>
+                          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{notif.time}</span>
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: '#475569', margin: '4px 0 0 0', lineHeight: '1.4' }}>{notif.desc}</p>
+                      </div>
+                      {!notif.read && (
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#2563EB', alignSelf: 'center' }}></span>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {teamNotifications.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', color: '#64748B', fontWeight: 600, fontSize: '0.9rem' }}>
+                    No notifications right now.
+                  </div>
+                )}
               </div>
             </div>
           )}

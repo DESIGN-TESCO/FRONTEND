@@ -1826,13 +1826,14 @@ function App() {
           {currentTab === 'Dashboard' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1440px', margin: '0 auto' }}>
               {/* ROW 1: KPI CARDS */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
                 {[
                   { title: 'New Design Requests', value: requests.filter(r => r.status === 'New').length, icon: <Inbox size={20} />, trend: '+3 today', desc: 'From sales team', color: '#2B2E83', bg: '#EEF2F6', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('New'); setFilterDesigner('All'); } },
                   { title: 'Pending Assignment', value: requests.filter(r => r.assignedDesigner === 'Unassigned').length, icon: <UserPlus size={20} />, trend: 'Allocating', desc: 'Needs designer', color: '#F59E0B', bg: '#FEF3C7', onClick: () => { setCurrentTab('Design Requests'); setFilterDesigner('Unassigned'); setFilterStatus('All'); } },
                   { title: 'Active Projects', value: requests.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length, icon: <Clock size={20} />, trend: 'Active drawing', desc: 'In production', color: '#5C6AC4', bg: '#E0E7FF', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
                   { title: 'Pending Review', value: requests.filter(r => r.status === 'Pending Review').length, icon: <AlertTriangle size={20} />, trend: 'Needs approval', desc: 'Drawing submittals', color: '#8B5CF6', bg: '#F3E8FF', onClick: () => { setCurrentTab('Review Queue'); } },
                   { title: 'Client Revisions', value: revisionsList.filter(r => r.status === 'Pending' || r.status === 'Urgent').length, icon: <MessageSquare size={20} />, trend: 'Active cycles', desc: 'Review adjustments', color: '#EF4444', bg: '#FEE2E2', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
+                  { title: 'Overdue Tasks', value: requests.filter(r => ['Assigned', 'In Progress'].includes(r.status) && r.dueDate && new Date(r.dueDate) < new Date('2026-07-29')).length, icon: <AlertCircle size={20} />, trend: 'Overdue SLA', desc: 'Requires attention', color: '#B91C1C', bg: '#FEE2E2', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
                   { title: 'Completed This Week', value: requests.filter(r => r.status === 'Completed' || r.status === 'Approved').length + 2, icon: <CheckCircle2 size={20} />, trend: '+4 vs last week', desc: 'Ready for site', color: '#22C55E', bg: '#DCFCE7', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('Completed'); setFilterDesigner('All'); } }
                 ].map((kpi, idx) => (
                   <div
@@ -1953,6 +1954,7 @@ function App() {
                         <th>Project Type</th>
                         <th>Lead ID</th>
                         <th>Design Type</th>
+                        <th>Assigned by</th>
                         <th>Assigned Designer</th>
                         <th>Due Date</th>
                         <th>Status</th>
@@ -1973,6 +1975,15 @@ function App() {
                             <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, backgroundColor: r.projectType === 'PEB' ? '#edf5ff' : '#ecfdf5', color: r.projectType === 'PEB' ? '#0f62fe' : '#059669' }}>
                               {r.projectType}
                             </span>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: '0.8rem', color: '#1E293B' }}>
+                              {r.projectManager ? (
+                                <span>PM: <strong>{r.projectManager}</strong></span>
+                              ) : (
+                                <span>SM: <strong>{r.salesManager || r.requestedBy?.replace(' (Sales Manager)', '') || 'Ritesh Deshmukh'}</strong></span>
+                              )}
+                            </div>
                           </td>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2015,38 +2026,8 @@ function App() {
                 </div>
               </div>
 
-              {/* ROW 4: TEAM WORKLOAD */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E293B', marginBottom: '16px' }}>Design Team Workload Status</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  {designers.slice(0, 4).map((des, idx) => (
-                    <div key={idx} style={{ border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#34328C', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-                        {des.name.split(' ').map(n=>n[0]).join('')}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1E293B' }}>{des.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{des.role}</div>
-                          </div>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: des.workload > 85 ? 'var(--danger)' : 'var(--success)' }}>{des.status}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '8px', marginBottom: '2px' }}>
-                          <span>{des.currentTasks} Tasks</span>
-                          <span>{des.workload}% Workload</span>
-                        </div>
-                        <div className="progress-bar-container" style={{ height: '5px' }}>
-                          <div className="progress-bar-fill" style={{ width: `${des.workload}%`, backgroundColor: des.workload > 85 ? 'var(--danger)' : 'var(--success)' }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ROW 5: DEADLINES & REVISIONS */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              {/* ROW 5: DEADLINES */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
                 <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E293B', marginBottom: '16px' }}>Drawing Deadline Schedule</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -2065,38 +2046,10 @@ function App() {
                     ))}
                   </div>
                 </div>
-
-                <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E293B', marginBottom: '16px' }}>Client Revision Tracker</h3>
-                  <div className="table-wrapper">
-                    <table className="crm-table">
-                      <thead>
-                        <tr>
-                          <th>Project</th>
-                          <th>Revision #</th>
-                          <th>Designer</th>
-                          <th>Status</th>
-                          <th>Priority</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {revisionsList.map((rev, idx) => (
-                          <tr key={idx}>
-                            <td style={{ fontWeight: 600, fontSize: '0.8rem' }}>{rev.project}</td>
-                            <td>{rev.revNumber}</td>
-                            <td>{rev.designer}</td>
-                            <td><span className="badge badge-assigned">{rev.status}</span></td>
-                            <td>{getPriorityBadge(rev.designer === 'Amit Patel' ? 'Urgent' : 'High')}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
               </div>
 
-              {/* ROW 6: DEPARTMENT ACTIVITIES & ALERTS */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              {/* ROW 6: DEPARTMENT ACTIVITIES */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
                 <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E293B', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <History size={16} />
@@ -2114,26 +2067,6 @@ function App() {
                           </p>
                           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{act.time}</span>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E293B', marginBottom: '16px' }}>Urgent Department Alerts</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {[
-                      { alert: '3 Projects Overdue', desc: 'Shed design timeline breaches', action: 'Reallocate tasks' },
-                      { alert: '2 Designers Overloaded', desc: 'Workload values above 90%', action: 'Balance capacity' },
-                      { alert: '5 Drawings Pending Approval', desc: 'Awaiting engineering signoff', action: 'Review submittals' },
-                      { alert: 'Client Waiting Revision', desc: 'Tensile design changes', action: 'Expedite drawings' }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{ backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', justifySelf: 'space-between', justifyContent: 'space-between' }}>
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--danger)' }}>{item.alert}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#7F1D1D', marginTop: '2px' }}>{item.desc}</div>
-                        </div>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--primary-hover)', textDecoration: 'underline', marginTop: '8px', cursor: 'pointer' }} onClick={() => alert(`Redirecting to action: ${item.action}`)}>{item.action} &rarr;</span>
                       </div>
                     ))}
                   </div>

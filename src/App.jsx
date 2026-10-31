@@ -772,19 +772,21 @@ function App() {
   // Filtered Requests Logic
   const filteredRequests = useMemo(() => {
     return requests.filter(r => {
-      const matchSearch =
-        r.projectName.toLowerCase().includes(searchText.toLowerCase()) ||
-        (getLeadId(r).toLowerCase().includes(searchText.toLowerCase())) ||
-        r.customerName.toLowerCase().includes(searchText.toLowerCase()) ||
-        r.id.toLowerCase().includes(searchText.toLowerCase()) ||
-        r.requestedBy.toLowerCase().includes(searchText.toLowerCase());
+      const q = (searchText || '').toLowerCase();
+      const matchSearch = !q ||
+        (r.projectName || '').toLowerCase().includes(q) ||
+        (getLeadId(r) || '').toLowerCase().includes(q) ||
+        (r.customerName || '').toLowerCase().includes(q) ||
+        (r.id || '').toLowerCase().includes(q) ||
+        (r.procurementProjectCode || '').toLowerCase().includes(q) ||
+        (r.requestedBy || '').toLowerCase().includes(q);
 
       const matchType = filterType === 'All' || r.projectType === filterType;
       const matchReq = filterRequirement === 'All' || r.requirement === filterRequirement;
       const matchPriority = filterPriority === 'All' || r.priority === filterPriority;
       const matchStatus = filterStatus === 'All' || r.status === filterStatus;
       const matchDesigner = filterDesigner === 'All' || r.assignedDesigner === filterDesigner;
-      const matchSM = filterSalesManager === 'All' || r.requestedBy.includes(filterSalesManager);
+      const matchSM = filterSalesManager === 'All' || (r.requestedBy || '').includes(filterSalesManager);
 
       return matchSearch && matchType && matchReq && matchPriority && matchStatus && matchDesigner && matchSM;
     });

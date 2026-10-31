@@ -65,14 +65,8 @@ export default function DesignTeamDashboard({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
-  const [startDateFilter, setStartDateFilter] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
-  const [endDateFilter, setEndDateFilter] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
 
   // Modal & Popover States
   const [selectedReqForDetail, setSelectedReqForDetail] = useState(null);
@@ -184,7 +178,7 @@ export default function DesignTeamDashboard({
       const matchesStatus = statusFilter === 'All' ? true : r.status === statusFilter;
       const matchesPriority = priorityFilter === 'All' ? true : r.priority === priorityFilter;
 
-      const matchesDateRange = (!startDateFilter || r.dueDate >= startDateFilter) && (!endDateFilter || r.dueDate <= endDateFilter);
+      const matchesDateRange = (!startDateFilter || !r.dueDate || r.dueDate >= startDateFilter) && (!endDateFilter || !r.dueDate || r.dueDate <= endDateFilter);
 
       return isAssignedToCurrent && matchesSearch && matchesStatus && matchesPriority && matchesDateRange;
     });
@@ -708,12 +702,18 @@ export default function DesignTeamDashboard({
                       <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Design Requirements List</h3>
                       <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '2px 0 0 0' }}>Requirements received from Design Head</p>
                     </div>
-                    <button 
-                      onClick={() => setCurrentTab('Requirements')}
-                      style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      View All ({designerRequests.length}) <ChevronRight size={14} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ position: 'relative' }}>
+                        <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                        <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search tasks…" style={{ padding: '7px 12px 7px 32px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', outline: 'none', width: '200px' }} />
+                      </div>
+                      <button 
+                        onClick={() => setCurrentTab('Requirements')}
+                        style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                      >
+                        View All ({designerRequests.length}) <ChevronRight size={14} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="table-wrapper" style={{ overflowX: 'auto' }}>
@@ -825,9 +825,15 @@ export default function DesignTeamDashboard({
                   <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Design Requirements from Head</h2>
                   <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '2px 0 0 0' }}>All design tasks & parameters assigned by the Design Head</p>
                 </div>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', backgroundColor: '#F1F5F9', padding: '6px 12px', borderRadius: '8px' }}>
-                  Total Tasks: {designerRequests.length}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                    <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by project, ID, client…" style={{ padding: '8px 12px 8px 32px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem', outline: 'none', width: '240px' }} />
+                  </div>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', backgroundColor: '#F1F5F9', padding: '6px 12px', borderRadius: '8px', whiteSpace: 'nowrap' }}>
+                    Total Tasks: {designerRequests.length}
+                  </span>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>

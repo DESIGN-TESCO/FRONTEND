@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import DesignTeamDashboard from './DesignTeamDashboard';
 import TeamAccounts from './TeamAccounts';
+import { notify, confirmDialog, promptDialog } from './notify';
 import {
   LayoutDashboard,
   Inbox,
@@ -140,7 +141,7 @@ function App() {
 
   const handleGenerateBoq = async () => {
     if (!selectedLeadIdForBoq) {
-      alert('Please select a Lead ID.');
+      notify('Please select a Lead ID.');
       return;
     }
     const req = requests.find(r => r.id === selectedLeadIdForBoq);
@@ -261,7 +262,7 @@ function App() {
       setBoqList(prev => [created, ...prev]);
       setIsCreateBoqFormOpen(false);
       setSelectedBoqId(created.id);
-    } catch (err) { alert(err.message || 'Could not create BOQ.'); }
+    } catch (err) { notify(err.message || 'Could not create BOQ.'); }
   };
 
   // Design Requirement Form states
@@ -385,7 +386,7 @@ function App() {
       setRequests(prev => prev.map(r => r.id === updated.id ? updated : r));
       setSelectedRequest(updated);
       setIsRequirementFormOpen(false);
-    } catch (err) { alert(err.message || 'Could not save requirement details.'); }
+    } catch (err) { notify(err.message || 'Could not save requirement details.'); }
   };
 
   const handleUpdateMaterialQty = async (boqId, materialIndex, newQty) => {
@@ -403,7 +404,7 @@ function App() {
   };
 
   const handleCreateMaterial = async (boqId) => {
-    if (!newMatName.trim()) { alert('Please enter a material name.'); return; }
+    if (!newMatName.trim()) { notify('Please enter a material name.'); return; }
     const b = boqList.find(x => x.id === boqId);
     if (!b) return;
     const newMat = {
@@ -429,6 +430,12 @@ function App() {
   
   // Inline date editor state
   const [editingDateId, setEditingDateId] = useState(null);
+  const handleBoqStatus = async (boqId, status) => {
+    setBoqList(prev => prev.map(b => b.id === boqId ? { ...b, status } : b));
+    try { await boqsApi.update(boqId, { status }); } catch (e) { notify(e.message || 'Could not update BOQ.'); return; }
+    notify(status === 'Approved' ? 'BOQ approved.' : 'Sent back to the estimating engineer for correction.');
+  };
+
   const handleDateChange = async (id, newDate) => {
     setRequests(prev => prev.map(r => r.id === id ? { ...r, dueDate: newDate } : r));
     setProjectsList(prev => prev.map(r => r.id === id ? { ...r, dueDate: newDate } : r));
@@ -491,15 +498,15 @@ function App() {
       await loadData();
       setIsAssignModalOpen(false);
       setAssignModalRequest(null);
-      alert(`Success: Project successfully assigned to ${designerObj.name}.`);
-    } catch (err) { alert(err.message || 'Could not assign designer.'); }
+      notify(`Success: Project successfully assigned to ${designerObj.name}.`);
+    } catch (err) { notify(err.message || 'Could not assign designer.'); }
   };
 
   const handleDirectAssignDesigner = async (requestId, designerName) => {
     try {
       await requestsApi.setDesigner(requestId, designerName || 'Unassigned');
       await loadData();
-    } catch (err) { alert(err.message || 'Could not update assignment.'); }
+    } catch (err) { notify(err.message || 'Could not update assignment.'); }
   };
 
   const updateRequestStatus = async (statusName, actionMessage, reqObj = null) => {
@@ -509,9 +516,9 @@ function App() {
       await requestsApi.setStatus(activeReq.id, statusName, actionMessage);
       await loadData();
       if (statusName === 'Completed' || statusName === 'Approved') {
-        alert(`Success: Design files for ${activeReq.projectName} (${activeReq.id}) have been automatically sent to ${activeReq.requestedBy}.`);
+        notify(`Success: Design files for ${activeReq.projectName} (${activeReq.id}) have been automatically sent to ${activeReq.requestedBy}.`);
       }
-    } catch (err) { alert(err.message || 'Could not update status.'); }
+    } catch (err) { notify(err.message || 'Could not update status.'); }
   };
 
   const handleApprove = async (r) => {
@@ -519,22 +526,22 @@ function App() {
     try {
       await requestsApi.approve(req.id);
       await loadData();
-      alert(`Design approved for ${req.projectName || req.id}. The approved files are now available to Procurement.`);
-    } catch (e) { alert(e.message || 'Could not approve.'); }
+      notify(`Design approved for ${req.projectName || req.id}. The approved files are now available to Procurement.`);
+    } catch (e) { notify(e.message || 'Could not approve.'); }
   };
   const handleReject = async (r) => {
     const req = r || selectedRequest; if (!req) return;
-    const reason = window.prompt('Reason for rejection:');
+    const reason = await promptDialog({ title: 'Reject design', message: 'Why is this design being rejected? The designer will see this reason.', confirmText: 'Reject', danger: true });
     if (reason === null) return;
-    try { await requestsApi.reject(req.id, reason); await loadData(); alert('Design rejected.'); }
-    catch (e) { alert(e.message || 'Could not reject.'); }
+    try { await requestsApi.reject(req.id, reason); await loadData(); notify('Design rejected.'); }
+    catch (e) { notify(e.message || 'Could not reject.'); }
   };
   const handleRequestChanges = async (r) => {
     const req = r || selectedRequest; if (!req) return;
-    const remarks = window.prompt('Remarks / changes required:');
+    const remarks = await promptDialog({ title: 'Request changes', message: 'What changes are required? The designer will see these remarks.', confirmText: 'Send back' });
     if (remarks === null) return;
-    try { await requestsApi.requestChanges(req.id, remarks); await loadData(); alert('Sent back to the designer for changes.'); }
-    catch (e) { alert(e.message || 'Could not request changes.'); }
+    try { await requestsApi.requestChanges(req.id, remarks); await loadData(); notify('Sent back to the designer for changes.'); }
+    catch (e) { notify(e.message || 'Could not request changes.'); }
   };
 
   const handleRequestRevisionSubmit = async (e) => {
@@ -555,8 +562,8 @@ function App() {
       await requestsApi.setStatus(selectedRequest.id, 'In Progress', `Revision Requested (${newRevNumber}): ${revisionComment}`);
       setRevisionComment('');
       await loadData();
-      alert(`Success: Revision requested successfully for ${selectedRequest.projectName}.`);
-    } catch (err) { alert(err.message || 'Could not request revision.'); }
+      notify(`Success: Revision requested successfully for ${selectedRequest.projectName}.`);
+    } catch (err) { notify(err.message || 'Could not request revision.'); }
   };
 
   const handleOpenRevisionModal = (req) => {
@@ -585,8 +592,8 @@ function App() {
       setIsRevisionModalOpen(false);
       setRevisionModalRequest(null);
       setRevisionModalComments('');
-      alert(`Success: Revision requested successfully for ${revisionModalRequest.projectName}.`);
-    } catch (err) { alert(err.message || 'Could not request revision.'); }
+      notify(`Success: Revision requested successfully for ${revisionModalRequest.projectName}.`);
+    } catch (err) { notify(err.message || 'Could not request revision.'); }
   };
 
   const handleAddComment = async (e) => {
@@ -597,7 +604,7 @@ function App() {
       setNewComment('');
       setSelectedRequest(updated);
       setRequests(prev => prev.map(r => r.id === updated.id ? updated : r));
-    } catch (err) { alert(err.message || 'Could not add comment.'); }
+    } catch (err) { notify(err.message || 'Could not add comment.'); }
   };
 
   const resetFilters = () => {
@@ -660,8 +667,8 @@ function App() {
   const handleSaveSettings = async () => {
     try {
       await authApi.updateMe({ name: settingsFullName, settings: { systemRole: settingsRole, emailAlerts: settingsEmailAlerts, desktopNotifications: settingsDesktopNotifications, themeMode: settingsThemeMode } });
-      alert('Configuration saved successfully!');
-    } catch (err) { alert(err.message || 'Could not save settings.'); }
+      notify('Configuration saved successfully!');
+    } catch (err) { notify(err.message || 'Could not save settings.'); }
   };
 
   const fieldStyle = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '0.85rem', marginTop: '4px', fontFamily: 'inherit' };
@@ -674,13 +681,13 @@ function App() {
   const setNR = (k, v) => setNewReq(prev => ({ ...prev, [k]: v }));
   const handleCreateRequest = async (e) => {
     e.preventDefault();
-    if (!newReq.projectName.trim() || !newReq.customerName.trim()) { alert('Enter the customer and project name.'); return; }
+    if (!newReq.projectName.trim() || !newReq.customerName.trim()) { notify('Enter the customer and project name.'); return; }
     setCreatingReq(true);
     try {
       await requestsApi.create({ ...newReq, assignedDesigner: 'Unassigned', status: 'New', deliverables: [],
         history: [{ title: 'Request created', time: new Date().toISOString().slice(0, 16).replace('T', ' '), desc: 'Created in Design CRM' }] });
       setIsNewReqOpen(false); setNewReq(blankReq()); await loadData();
-    } catch (err) { alert(err.message || 'Could not create request.'); }
+    } catch (err) { notify(err.message || 'Could not create request.'); }
     finally { setCreatingReq(false); }
   };
 
@@ -690,12 +697,12 @@ function App() {
   const setND = (k, v) => setNewDesigner(prev => ({ ...prev, [k]: v }));
   const handleCreateDesigner = async (e) => {
     e.preventDefault();
-    if (!newDesigner.name.trim()) { alert('Enter the designer name.'); return; }
+    if (!newDesigner.name.trim()) { notify('Enter the designer name.'); return; }
     setCreatingDesigner(true);
     try {
       await designersApi.create({ ...newDesigner, status: 'Available', workload: 0, currentTasks: 0, availableCapacity: '40 hrs' });
       setIsAddDesignerOpen(false); setNewDesigner({ name: '', role: '', experience: '', availability: 'Full-time' }); await loadData();
-    } catch (err) { alert(err.message || 'Could not add designer.'); }
+    } catch (err) { notify(err.message || 'Could not add designer.'); }
     finally { setCreatingDesigner(false); }
   };
 
@@ -705,14 +712,14 @@ function App() {
   const [docUploading, setDocUploading] = useState(false);
   const handleUploadDocument = async (e) => {
     e.preventDefault();
-    if (!docFile) { alert('Choose a file to upload.'); return; }
+    if (!docFile) { notify('Choose a file to upload.'); return; }
     setDocUploading(true);
     try {
       const up = await filesApi.upload(docFile, { entity: 'document' });
       await documentsApi.create({ name: docFile.name, category: docForm.category, project: docForm.project, uploadedBy: settingsFullName || 'Design Head', version: docForm.version, date: new Date().toISOString().split('T')[0], fileId: up.fileId });
       setIsDocUploadOpen(false); setDocFile(null); setDocForm({ category: '2D Requirements', project: '', version: 'V1' });
       const docs = await documentsApi.list(); setDocumentsList(docs);
-    } catch (err) { alert(err.message || 'Upload failed.'); }
+    } catch (err) { notify(err.message || 'Upload failed.'); }
     finally { setDocUploading(false); }
   };
 
@@ -722,14 +729,14 @@ function App() {
   const [dwgUploading, setDwgUploading] = useState(false);
   const handleUploadDrawing = async (e) => {
     e.preventDefault();
-    if (!dwgFile) { alert('Choose a file to upload.'); return; }
+    if (!dwgFile) { notify('Choose a file to upload.'); return; }
     setDwgUploading(true);
     try {
       const up = await filesApi.upload(dwgFile, { entity: 'drawing' });
       await drawingsApi.create({ name: dwgFile.name, folder: dwgForm.folder, project: dwgForm.project, version: dwgForm.version, designer: dwgForm.designer, date: new Date().toISOString().split('T')[0], fileId: up.fileId });
       setIsDwgUploadOpen(false); setDwgFile(null); setDwgForm({ folder: '2D Drawings', project: '', version: 'V1', designer: '' });
       const draws = await drawingsApi.list(); setDrawingsList(draws);
-    } catch (err) { alert(err.message || 'Upload failed.'); }
+    } catch (err) { notify(err.message || 'Upload failed.'); }
     finally { setDwgUploading(false); }
   };
 
@@ -1120,13 +1127,13 @@ function App() {
               {/* ROW 1: KPI CARDS */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
                 {[
-                  { title: 'New Design Requests', value: requests.filter(r => r.status === 'New').length, icon: <Inbox size={20} />, trend: '+3 today', desc: 'From sales team', color: '#2B2E83', bg: '#EEF2F6', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('New'); setFilterDesigner('All'); } },
+                  { title: 'New Design Requests', value: requests.filter(r => r.status === 'New').length, icon: <Inbox size={20} />, trend: 'Awaiting triage', desc: 'From sales team', color: '#2B2E83', bg: '#EEF2F6', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('New'); setFilterDesigner('All'); } },
                   { title: 'Pending Assignment', value: requests.filter(r => r.assignedDesigner === 'Unassigned').length, icon: <UserPlus size={20} />, trend: 'Allocating', desc: 'Needs designer', color: '#F59E0B', bg: '#FEF3C7', onClick: () => { setCurrentTab('Design Requests'); setFilterDesigner('Unassigned'); setFilterStatus('All'); } },
                   { title: 'Active Projects', value: requests.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length, icon: <Clock size={20} />, trend: 'Active drawing', desc: 'In production', color: '#5C6AC4', bg: '#E0E7FF', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
                   { title: 'Pending Review', value: requests.filter(r => r.status === 'Pending Review').length, icon: <AlertTriangle size={20} />, trend: 'Needs approval', desc: 'Drawing submittals', color: '#8B5CF6', bg: '#F3E8FF', onClick: () => { setCurrentTab('Review Queue'); } },
                   { title: 'Client Revisions', value: revisionsList.filter(r => r.status === 'Pending' || r.status === 'Urgent').length, icon: <MessageSquare size={20} />, trend: 'Active cycles', desc: 'Review adjustments', color: '#EF4444', bg: '#FEE2E2', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
-                  { title: 'Overdue Tasks', value: requests.filter(r => ['Assigned', 'In Progress'].includes(r.status) && r.dueDate && new Date(r.dueDate) < new Date('2026-07-29')).length, icon: <AlertCircle size={20} />, trend: 'Overdue SLA', desc: 'Requires attention', color: '#B91C1C', bg: '#FEE2E2', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
-                  { title: 'Completed This Week', value: requests.filter(r => r.status === 'Completed' || r.status === 'Approved').length + 2, icon: <CheckCircle2 size={20} />, trend: '+4 vs last week', desc: 'Ready for site', color: '#22C55E', bg: '#DCFCE7', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('Completed'); setFilterDesigner('All'); } }
+                  { title: 'Overdue Tasks', value: requests.filter(r => ['Assigned', 'In Progress'].includes(r.status) && r.dueDate && new Date(r.dueDate) < new Date()).length, icon: <AlertCircle size={20} />, trend: 'Overdue SLA', desc: 'Requires attention', color: '#B91C1C', bg: '#FEE2E2', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
+                  { title: 'Completed This Week', value: requests.filter(r => r.status === 'Completed' || r.status === 'Approved').length, icon: <CheckCircle2 size={20} />, trend: 'This week', desc: 'Ready for site', color: '#22C55E', bg: '#DCFCE7', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('Completed'); setFilterDesigner('All'); } }
                 ].map((kpi, idx) => (
                   <div
                     key={idx}
@@ -1744,8 +1751,8 @@ function App() {
                             <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{boq.engineer}</div>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <button className="btn-primary" onClick={() => alert('BOQ Approved! Notification sent to Sales Manager.')}>Approve BOQ</button>
-                            <button className="btn-secondary" onClick={() => alert('BOQ Rejected back to estimation engineer.')}>Request Correction</button>
+                            <button className="btn-primary" onClick={() => handleBoqStatus(boq.id, 'Approved')}>Approve BOQ</button>
+                            <button className="btn-secondary" onClick={() => handleBoqStatus(boq.id, 'Preparing')}>Request Correction</button>
                           </div>
                         </div>
                       </div>
@@ -2102,7 +2109,7 @@ function App() {
                                 <a 
                                   key={idx} 
                                   href="#" 
-                                  onClick={(e) => { e.preventDefault(); a.fileId ? filesApi.download(a.fileId, a.name) : alert('No file attached.'); }}
+                                  onClick={(e) => { e.preventDefault(); a.fileId ? filesApi.download(a.fileId, a.name) : notify('No file attached.'); }}
                                   style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'none' }}
                                 >
                                   {a.name} ({a.size})
@@ -2222,8 +2229,8 @@ function App() {
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Designer: {dwg.designer}</div>
                         </div>
                         <div style={{ display: 'flex', gap: '6px', marginTop: '12px' }}>
-                          <button className="btn-secondary" style={{ flex: 1, padding: '4px', fontSize: '0.75rem' }} onClick={() => dwg.fileId ? filesApi.download(dwg.fileId, dwg.name) : alert('No file attached to this drawing.')}>Download</button>
-                          <button className="btn-secondary" style={{ padding: '4px', fontSize: '0.75rem' }} onClick={() => alert(`Sharing file ${dwg.name}`)}><Share2 size={12} /></button>
+                          <button className="btn-secondary" style={{ flex: 1, padding: '4px', fontSize: '0.75rem' }} onClick={() => dwg.fileId ? filesApi.download(dwg.fileId, dwg.name) : notify('No file attached to this drawing.')}>Download</button>
+                          <button className="btn-secondary" style={{ padding: '4px', fontSize: '0.75rem' }} title="View" onClick={() => dwg.fileId ? filesApi.open(dwg.fileId, dwg.name) : notify('No file attached to this drawing.')}><Eye size={12} /></button>
                         </div>
                       </div>
                     ))}
@@ -2383,7 +2390,7 @@ function App() {
                             <button 
                               className="btn-secondary" 
                               style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }} 
-                              onClick={() => doc.fileId ? filesApi.download(doc.fileId, doc.name) : alert('No file attached to this document.')}
+                              onClick={() => doc.fileId ? filesApi.download(doc.fileId, doc.name) : notify('No file attached to this document.')}
                             >
                               <Download size={12} /> Download
                             </button>
@@ -3363,7 +3370,7 @@ function App() {
                       </div>
                       <a
                         href="#"
-                        onClick={(e) => { e.preventDefault(); file.fileId ? filesApi.download(file.fileId, file.name) : alert('No file attached.'); }}
+                        onClick={(e) => { e.preventDefault(); file.fileId ? filesApi.download(file.fileId, file.name) : notify('No file attached.'); }}
                         style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }}
                       >
                         Download
@@ -3446,8 +3453,8 @@ function App() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.75rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '8px', marginTop: '8px' }}>
                           <div><strong>Requested By:</strong> {rev.requestedBy}</div>
                           <div><strong>Assigned Designer:</strong> {rev.designer}</div>
-                          <div><strong>Old version:</strong> <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => alert(`Opening old version: ${rev.oldVersion}`)}>{rev.oldVersion}</span></div>
-                          <div><strong>New version:</strong> <span style={{ color: 'var(--success)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => alert(`Opening revised version: ${rev.newVersion}`)}>{rev.newVersion}</span></div>
+                          <div><strong>Old version:</strong> <span style={{ color: 'var(--primary)' }}>{rev.oldVersion}</span></div>
+                          <div><strong>New version:</strong> <span style={{ color: 'var(--success)' }}>{rev.newVersion}</span></div>
                           <div><strong>Created Date:</strong> {rev.date}</div>
                           <div><strong>Due Date SLA:</strong> {rev.dueDate}</div>
                         </div>

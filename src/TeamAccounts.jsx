@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { UserPlus, X, KeyRound, Power, Pencil, Eye, Trash2 } from 'lucide-react';
 import { authApi, requestsApi } from './api/client';
+import { notify, confirmDialog, promptDialog } from './notify';
 
 // Design Head — create & manage Design Team login accounts (secure, hashed on the
 // backend). Create / edit / reset password / activate-deactivate / view assigned work.
@@ -35,11 +36,11 @@ export default function TeamAccounts() {
   const save = async (e) => {
     e.preventDefault();
     const d = editing.data;
-    if (!d.name.trim()) { alert('Employee name is required.'); return; }
-    if (!d.email && !d.username) { alert('Enter a username or email.'); return; }
+    if (!d.name.trim()) { notify('Employee name is required.'); return; }
+    if (!d.email && !d.username) { notify('Enter a username or email.'); return; }
     if (editing.isNew) {
-      if (!d.password || d.password.length < 6) { alert('Password must be at least 6 characters.'); return; }
-      if (d.password !== d.confirm) { alert('Passwords do not match.'); return; }
+      if (!d.password || d.password.length < 6) { notify('Password must be at least 6 characters.'); return; }
+      if (d.password !== d.confirm) { notify('Passwords do not match.'); return; }
     }
     setBusy(true);
     try {
@@ -49,29 +50,29 @@ export default function TeamAccounts() {
         await authApi.updateUser(editing.id, { name: d.name, employeeId: d.employeeId, designation: d.designation, username: d.username, email: d.email, role: d.role, isActive: d.isActive });
       }
       setEditing(null); await load();
-    } catch (e2) { alert(e2.message || 'Could not save account.'); }
+    } catch (e2) { notify(e2.message || 'Could not save account.'); }
     finally { setBusy(false); }
   };
 
   const resetPw = async (u) => {
-    const np = window.prompt(`New password for ${u.name}:`);
+    const np = await promptDialog({ title: 'Reset password', message: `Set a new password for ${u.name}.`, inputType: 'password', placeholder: 'New password (min 6 characters)', confirmText: 'Reset password' });
     if (np === null) return;
-    if (np.length < 6) { alert('Password must be at least 6 characters.'); return; }
-    try { await authApi.resetUserPassword(u._id, np); alert('Password reset.'); }
-    catch (e) { alert(e.message || 'Could not reset password.'); }
+    if (np.length < 6) { notify('Password must be at least 6 characters.'); return; }
+    try { await authApi.resetUserPassword(u._id, np); notify('Password reset.'); }
+    catch (e) { notify(e.message || 'Could not reset password.'); }
   };
   const toggleActive = async (u) => {
     try { await authApi.setUserActive(u._id, !(u.isActive !== false)); await load(); }
-    catch (e) { alert(e.message || 'Could not update status.'); }
+    catch (e) { notify(e.message || 'Could not update status.'); }
   };
   const del = async (u) => {
-    if (!window.confirm(`Delete the account for ${u.name}? This cannot be undone.`)) return;
+    if (!(await confirmDialog({ title: 'Delete account', message: `Delete the account for ${u.name}? This cannot be undone.`, confirmText: 'Delete', danger: true }))) return;
     try { await authApi.deleteUser(u._id); await load(); }
-    catch (e) { alert(e.message || 'Could not delete account.'); }
+    catch (e) { notify(e.message || 'Could not delete account.'); }
   };
   const viewWork = async (u) => {
     try { const all = await requestsApi.list(); setWorkFor({ user: u, rows: all.filter((r) => r.assignedDesigner === u.name) }); }
-    catch (e) { alert(e.message || 'Could not load assigned work.'); }
+    catch (e) { notify(e.message || 'Could not load assigned work.'); }
   };
 
   const roleLabel = (r) => (r === 'design_head' ? 'Design Head' : 'Design Team');
@@ -137,10 +138,10 @@ export default function TeamAccounts() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <label style={label}>Employee Name *<input style={field} value={editing.data.name} onChange={(e) => setD('name', e.target.value)} /></label>
               <label style={label}>Employee ID<input style={field} value={editing.data.employeeId} onChange={(e) => setD('employeeId', e.target.value)} /></label>
-              <label style={label}>Username<input style={field} value={editing.data.username} onChange={(e) => setD('username', e.target.value)} placeholder="login username" /></label>
-              <label style={label}>Email<input style={field} value={editing.data.email} onChange={(e) => setD('email', e.target.value)} placeholder="name@tesco.com" /></label>
-              {editing.isNew && <label style={label}>Password *<input type="password" style={field} value={editing.data.password} onChange={(e) => setD('password', e.target.value)} /></label>}
-              {editing.isNew && <label style={label}>Confirm Password *<input type="password" style={field} value={editing.data.confirm} onChange={(e) => setD('confirm', e.target.value)} /></label>}
+              <label style={label}>Username<input style={field} name="ta_username" autoComplete="off" value={editing.data.username} onChange={(e) => setD('username', e.target.value)} placeholder="login username" /></label>
+              <label style={label}>Email<input style={field} name="ta_email" autoComplete="off" value={editing.data.email} onChange={(e) => setD('email', e.target.value)} placeholder="name@tesco.com" /></label>
+              {editing.isNew && <label style={label}>Password *<input type="password" name="ta_newpass" autoComplete="new-password" style={field} value={editing.data.password} onChange={(e) => setD('password', e.target.value)} /></label>}
+              {editing.isNew && <label style={label}>Confirm Password *<input type="password" name="ta_confirmpass" autoComplete="new-password" style={field} value={editing.data.confirm} onChange={(e) => setD('confirm', e.target.value)} /></label>}
               <label style={label}>Designation
                 {addingDesig ? (
                   <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>

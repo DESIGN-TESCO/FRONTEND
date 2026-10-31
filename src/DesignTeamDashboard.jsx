@@ -36,6 +36,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { requestsApi, submittalsApi, notificationsApi, filesApi } from './api/client';
+import { notify } from './notify';
 
 export default function DesignTeamDashboard({
   requests = [],
@@ -301,9 +302,9 @@ export default function DesignTeamDashboard({
       });
       await reloadTeamData();
       const reqs = await requestsApi.list(); setRequests(reqs);
-      alert(`Successfully uploaded ${uploadFileName}! Status updated to 'Pending Head Review'.`);
+      notify(`Successfully uploaded ${uploadFileName}! Status updated to 'Pending Head Review'.`);
       setUploadModalOpen(false); setSelectedReqForUpload(null); setSelectedFileObj(null);
-    } catch (err) { alert(err.message || 'Upload failed.'); }
+    } catch (err) { notify(err.message || 'Upload failed.'); }
   };
 
   // Handle Status Change (e.g. Start Work)
@@ -311,7 +312,7 @@ export default function DesignTeamDashboard({
     try {
       await requestsApi.setStatus(reqId, 'In Progress', `${selectedDesignerName} commenced drafting work.`);
       const reqs = await requestsApi.list(); setRequests(reqs);
-    } catch (err) { alert(err.message || 'Could not start work.'); }
+    } catch (err) { notify(err.message || 'Could not start work.'); }
   };
 
   // Handle Comment Submission
@@ -322,7 +323,18 @@ export default function DesignTeamDashboard({
       setNewCommentText('');
       const reqs = await requestsApi.list(); setRequests(reqs);
       setSelectedReqForDetail(prev => prev ? (reqs.find(r => r.id === prev.id) || prev) : prev);
-    } catch (err) { alert(err.message || 'Could not add comment.'); }
+    } catch (err) { notify(err.message || 'Could not add comment.'); }
+  };
+
+  const exportManifest = () => {
+    const rows = [['File Name', 'Project', 'Type', 'Size', 'Version', 'Submitted By', 'Date', 'Status']];
+    uploadedFilesList.forEach(f => rows.push([f.fileName, f.projectName, f.fileType, f.fileSize, f.version, f.submittedBy, f.submittedDate, f.status]));
+    const csv = rows.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = href; a.download = 'submittal_manifest.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 2000);
   };
 
   const reloadTeamData = React.useCallback(async () => {
@@ -1049,7 +1061,7 @@ export default function DesignTeamDashboard({
                   <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '2px 0 0 0' }}>All uploaded CAD drawings, PDF packages, and 3D submittals</p>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => alert('Exporting drawing manifest to Excel...')} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#334155', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button onClick={exportManifest} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#334155', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Download size={14} /> Export Manifest
                   </button>
                 </div>
@@ -1085,7 +1097,7 @@ export default function DesignTeamDashboard({
                         <td style={{ padding: '12px', color: '#64748B' }}>{file.submittedDate}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <button
-                            onClick={() => alert(`Downloading ${file.fileName}...`)}
+                            onClick={() => file.fileId ? filesApi.download(file.fileId, file.fileName) : notify('No file stored for this submittal.')}
                             style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#2563EB', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                           >
                             <Download size={12} /> CAD Download
@@ -1478,7 +1490,7 @@ export default function DesignTeamDashboard({
                           </div>
                           <button 
                             className="action-btn"
-                            onClick={() => alert(`Downloading ${att.name}...`)}
+                            onClick={() => att.fileId ? filesApi.download(att.fileId, att.name) : notify('No file stored for this attachment.')}
                             style={{ padding: '6px', borderRadius: '50%', color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer' }}
                           >
                             <Download size={16} />

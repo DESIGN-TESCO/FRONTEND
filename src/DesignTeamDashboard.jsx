@@ -381,7 +381,7 @@ export default function DesignTeamDashboard({
         {/* Menu Navigation */}
         <ul className="sidebar-menu" style={{ listStyle: 'none', padding: '16px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
           {[
-            { id: 'Dashboard', label: 'Team Dashboard', icon: <LayoutDashboard size={18} />, badge: null },
+            { id: 'Dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, badge: null },
             { id: 'Requirements', label: 'Assigned Tasks', icon: <Inbox size={18} />, badge: metrics.totalAssigned },
 
             { id: 'Submittal Status', label: 'Head Feedback', icon: <Clock size={18} />, badge: (metrics.pendingReview + metrics.revisionNeeded) > 0 ? (metrics.pendingReview + metrics.revisionNeeded) : null },

@@ -702,7 +702,7 @@ function App() {
     e.preventDefault();
     setLoginError(''); setLoginBusy(true);
     try {
-      const { user } = await authApi.login(loginEmail, loginPassword);
+      const { user } = await authApi.login(loginEmail, loginPassword, rememberMe);
       setIsLoggedIn(true);
       setLoginRole(user && user.role === 'design_team' ? 'Design Team' : 'Design Head');
       if (user) { setSettingsFullName(user.name || ''); setSettingsEmail(user.email || ''); }
@@ -919,9 +919,6 @@ function App() {
                   </div>
                   <button type="submit" disabled={loginBusy || !loginEmail || !loginPassword} style={{ backgroundColor: ACCENT, color: '#FFFFFF', border: 'none', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.875rem', cursor: (loginBusy || !loginEmail || !loginPassword) ? 'not-allowed' : 'pointer', boxShadow: `0 4px 12px ${ACCENT_SHADOW}`, marginTop: '0.25rem', opacity: (loginBusy || !loginEmail || !loginPassword) ? 0.55 : 1, transition: 'background-color 0.2s' }} onMouseEnter={(e) => { if (!(loginBusy || !loginEmail || !loginPassword)) e.currentTarget.style.backgroundColor = ACCENT_DARK; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ACCENT; }}>{loginBusy ? 'Signing in…' : 'Login to Dashboard'}</button>
                 </form>
-                <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: '#94A3B8' }}>
-                  <a href="#privacy" onClick={(e) => e.preventDefault()} style={{ color: '#64748B', textDecoration: 'none', fontWeight: 600 }}>Privacy Policy</a>
-                </p>
               </div>
             </div>
           </div>
@@ -931,7 +928,6 @@ function App() {
           <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1280px', margin: '0 auto', width: '100%', fontSize: '0.75rem', color: '#64748B', flexWrap: 'wrap', gap: '1rem' }}>
             <span>&copy; {new Date().getFullYear()} Tesco Structures &middot; Design Portal. All rights reserved.</span>
             <div style={{ display: 'flex', gap: '1.5rem', fontWeight: 500 }}>
-              <a href="#privacy" onClick={(e) => e.preventDefault()} style={{ color: 'inherit', textDecoration: 'none' }}>Privacy Policy</a>
               <a href="#terms" onClick={(e) => e.preventDefault()} style={{ color: 'inherit', textDecoration: 'none' }}>Terms of Service</a>
               <a href="#security" onClick={(e) => e.preventDefault()} style={{ color: 'inherit', textDecoration: 'none' }}>Security</a>
             </div>
@@ -973,7 +969,6 @@ function App() {
             { id: 'Design Team', label: 'Design Team', icon: <Users size={18} /> },
             { id: 'Review Queue', label: 'Pending Approvals', icon: <CheckSquare size={18} /> },
             { id: 'Documents', label: 'Documents', icon: <FileText size={18} /> },
-            { id: 'Drawings Library', label: 'Drawings Library', icon: <FolderOpen size={18} /> },
             { id: 'Notifications', label: 'Notifications', icon: <Bell size={18} /> },
             { id: 'Team Accounts', label: 'Team Accounts', icon: <UserPlus size={18} /> }
           ].map(item => (

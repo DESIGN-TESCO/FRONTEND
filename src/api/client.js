@@ -6,13 +6,21 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5006/api';
 const TOKEN_KEY = 'design_crm_token';
 const USER_KEY = 'design_crm_user';
 
-export const getToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
-export const getUser = () => { try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); } catch { return null; } };
-export const setSession = (token, user) => {
-  try { localStorage.setItem(TOKEN_KEY, token); localStorage.setItem(USER_KEY, JSON.stringify(user || null)); } catch { /* ignore */ }
+// "Remember Me": when checked the session is stored in localStorage (survives
+// browser/tab close); when unchecked it goes to sessionStorage (cleared when the
+// tab/browser closes). Reads check both so either kind of session works.
+export const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY); } catch { return null; } };
+export const getUser = () => { try { return JSON.parse(localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY) || 'null'); } catch { return null; } };
+export const setSession = (token, user, remember = true) => {
+  try {
+    const store = remember ? localStorage : sessionStorage;
+    const other = remember ? sessionStorage : localStorage;
+    other.removeItem(TOKEN_KEY); other.removeItem(USER_KEY);   // avoid a stale copy in the other store
+    store.setItem(TOKEN_KEY, token); store.setItem(USER_KEY, JSON.stringify(user || null));
+  } catch { /* ignore */ }
 };
 export const clearSession = () => {
-  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); } catch { /* ignore */ }
+  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); sessionStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(USER_KEY); } catch { /* ignore */ }
 };
 export const isAuthenticated = () => !!getToken();
 
@@ -39,9 +47,9 @@ export async function api(path, { method = 'GET', body } = {}) {
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 export const authApi = {
-  login: async (email, password) => {
+  login: async (email, password, remember = true) => {
     const data = await api('/auth/login', { method: 'POST', body: { email, password } });
-    if (data.token) setSession(data.token, data.user);
+    if (data.token) setSession(data.token, data.user, remember);
     return data;
   },
   me: () => api('/auth/me'),

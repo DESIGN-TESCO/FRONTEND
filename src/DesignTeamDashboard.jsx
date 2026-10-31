@@ -35,6 +35,7 @@ import {
   Check,
   FileSpreadsheet
 } from 'lucide-react';
+import { requestsApi, submittalsApi, notificationsApi, filesApi } from './api/client';
 
 export default function DesignTeamDashboard({
   requests = [],
@@ -73,32 +74,7 @@ export default function DesignTeamDashboard({
   const [showNotificationsPopover, setShowNotificationsPopover] = useState(false);
 
   // Team Notifications state
-  const [teamNotifications, setTeamNotifications] = useState([
-    {
-      id: 'NOTIF-01',
-      title: 'Revision Requested on REQ-2026-002',
-      desc: 'Design Head requested revision: Correct sag rod spacing for heavy vibration loads.',
-      time: '10 mins ago',
-      read: false,
-      type: 'revision'
-    },
-    {
-      id: 'NOTIF-02',
-      title: 'New PEB Assignment: REQ-2026-001',
-      desc: 'Design Head assigned PEB Warehouse project for 2D + 3D submittals.',
-      time: '1 hour ago',
-      read: false,
-      type: 'assignment'
-    },
-    {
-      id: 'NOTIF-03',
-      title: 'Drawing Approved by Head',
-      desc: 'Glass_Canopy_3D_Render_v1.0.pdf approved for fabrication.',
-      time: 'Yesterday',
-      read: true,
-      type: 'approval'
-    }
-  ]);
+  const [teamNotifications, setTeamNotifications] = useState([]);
 
   // Upload Form State & Notification Ref
   const [selectedFileObj, setSelectedFileObj] = useState(null);
@@ -144,50 +120,7 @@ export default function DesignTeamDashboard({
       else if (ext === 'zip' || ext === 'rar') setUploadFileType('ZIP Archive');
     }
   };
-  const [uploadedFilesList, setUploadedFilesList] = useState([
-    {
-      id: 'SUB-001',
-      reqId: 'REQ-2026-001',
-      projectName: 'PEB Warehouse',
-      fileName: 'PEB_Warehouse_Layout_v1.0.dwg',
-      fileType: 'AutoCAD',
-      fileSize: '18.2 MB',
-      deliverable: '2D Layout & Fabrication Drawing',
-      version: 'v1.0',
-      submittedBy: 'Amit Patel',
-      submittedDate: '2026-07-16 02:30 PM',
-      status: 'Pending Head Review',
-      notes: 'Structural member sizing completed according to MIDC Chakan wind load ratings.'
-    },
-    {
-      id: 'SUB-002',
-      reqId: 'REQ-2026-003',
-      projectName: 'Commercial Glass Canopy',
-      fileName: 'Glass_Canopy_3D_Render_v1.0.pdf',
-      fileType: 'PDF',
-      fileSize: '9.4 MB',
-      deliverable: '3D Render & Structural Calculation',
-      version: 'v1.0',
-      submittedBy: 'Priya Das',
-      submittedDate: '2026-07-16 04:15 PM',
-      status: 'Approved by Head',
-      notes: 'Spider fitting connection details included with safety glass loads.'
-    },
-    {
-      id: 'SUB-003',
-      reqId: 'REQ-2026-002',
-      projectName: 'Residential Roof Structure',
-      fileName: 'Roof_Truss_Framing_v1.1.dwg',
-      fileType: 'AutoCAD',
-      fileSize: '12.6 MB',
-      deliverable: '2D Truss Elevation & Gutter Detail',
-      version: 'v1.1',
-      submittedBy: 'Vikram Malhotra',
-      submittedDate: '2026-07-17 11:00 AM',
-      status: 'Revision Requested',
-      notes: 'Revised high-gradient gutter slope calculation for heavy monsoon loads.'
-    }
-  ]);
+  const [uploadedFilesList, setUploadedFilesList] = useState([]);
 
   // Comment state inside Detail Modal
   const [newCommentText, setNewCommentText] = useState('');
@@ -351,102 +284,55 @@ export default function DesignTeamDashboard({
   };
 
   // Handle Submitting Design File
-  const handleUploadSubmit = (e) => {
+  const handleUploadSubmit = async (e) => {
     e.preventDefault();
     if (!selectedReqForUpload) return;
-
-    const newSubmittal = {
-      id: `SUB-${Date.now().toString().slice(-4)}`,
-      reqId: selectedReqForUpload.id,
-      projectName: selectedReqForUpload.projectName,
-      fileName: uploadFileName || `${selectedReqForUpload.projectName}_Design.dwg`,
-      fileType: uploadFileType,
-      fileSize: uploadFileSize,
-      deliverable: uploadDeliverableType,
-      version: uploadVersion,
-      submittedBy: selectedDesignerName,
-      submittedDate: new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }),
-      status: 'Pending Head Review',
-      notes: uploadNotes
-    };
-
-    // Add to submitted files list
-    setUploadedFilesList([newSubmittal, ...uploadedFilesList]);
-
-    // Update global request state: change status to 'Pending Review', add attachment & timeline event
-    setRequests(prev => prev.map(r => {
-      if (r.id === selectedReqForUpload.id) {
-        const newAttachment = {
-          name: newSubmittal.fileName,
-          size: newSubmittal.fileSize,
-          type: newSubmittal.fileType
-        };
-        const newHistory = [
-          {
-            title: `Design File Uploaded (${newSubmittal.version})`,
-            time: new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }),
-            desc: `${selectedDesignerName} uploaded ${newSubmittal.fileName} and submitted for Design Head review.`
-          },
-          ...(r.history || [])
-        ];
-        return {
-          ...r,
-          status: 'Pending Review',
-          attachments: [newAttachment, ...(r.attachments || [])],
-          history: newHistory
-        };
+    try {
+      let fileId = '';
+      if (selectedFileObj) {
+        const up = await filesApi.upload(selectedFileObj, { entity: 'submittal', entityId: selectedReqForUpload.id, uploadedBy: selectedDesignerName });
+        fileId = up.fileId;
       }
-      return r;
-    }));
-
-    alert(`Successfully uploaded ${newSubmittal.fileName}! Status updated to 'Pending Head Review'.`);
-    setUploadModalOpen(false);
-    setSelectedReqForUpload(null);
+      await submittalsApi.create({
+        reqId: selectedReqForUpload.id, projectName: selectedReqForUpload.projectName,
+        fileName: uploadFileName || `${selectedReqForUpload.projectName}_Design.dwg`,
+        fileType: uploadFileType, fileSize: uploadFileSize, deliverable: uploadDeliverableType,
+        version: uploadVersion, submittedBy: selectedDesignerName, notes: uploadNotes, fileId,
+      });
+      await reloadTeamData();
+      const reqs = await requestsApi.list(); setRequests(reqs);
+      alert(`Successfully uploaded ${uploadFileName}! Status updated to 'Pending Head Review'.`);
+      setUploadModalOpen(false); setSelectedReqForUpload(null); setSelectedFileObj(null);
+    } catch (err) { alert(err.message || 'Upload failed.'); }
   };
 
   // Handle Status Change (e.g. Start Work)
-  const handleStartWork = (reqId) => {
-    setRequests(prev => prev.map(r => {
-      if (r.id === reqId) {
-        return {
-          ...r,
-          status: 'In Progress',
-          history: [
-            {
-              title: 'Designer Started Work',
-              time: new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }),
-              desc: `${selectedDesignerName} commenced drafting work on requirement.`
-            },
-            ...(r.history || [])
-          ]
-        };
-      }
-      return r;
-    }));
+  const handleStartWork = async (reqId) => {
+    try {
+      await requestsApi.setStatus(reqId, 'In Progress', `${selectedDesignerName} commenced drafting work.`);
+      const reqs = await requestsApi.list(); setRequests(reqs);
+    } catch (err) { alert(err.message || 'Could not start work.'); }
   };
 
   // Handle Comment Submission
-  const handleAddComment = (reqId) => {
+  const handleAddComment = async (reqId) => {
     if (!newCommentText.trim()) return;
-
-    setRequests(prev => prev.map(r => {
-      if (r.id === reqId) {
-        const updatedComments = [
-          ...(r.comments || []),
-          {
-            sender: selectedDesignerName,
-            role: 'Design Team',
-            text: newCommentText,
-            time: new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })
-          }
-        ];
-        return { ...r, comments: updatedComments };
-      }
-      return r;
-    }));
-
-    setNewCommentText('');
+    try {
+      await requestsApi.addComment(reqId, { sender: selectedDesignerName, role: 'Design Team', text: newCommentText });
+      setNewCommentText('');
+      const reqs = await requestsApi.list(); setRequests(reqs);
+      setSelectedReqForDetail(prev => prev ? (reqs.find(r => r.id === prev.id) || prev) : prev);
+    } catch (err) { alert(err.message || 'Could not add comment.'); }
   };
+
+  const reloadTeamData = React.useCallback(async () => {
+    try {
+      const [subs, notifs] = await Promise.all([submittalsApi.list(), notificationsApi.list('team')]);
+      setUploadedFilesList(subs);
+      setTeamNotifications(notifs.map(n => ({ ...n, id: n._id || n.id })));
+    } catch { /* ignore */ }
+  }, []);
+  React.useEffect(() => { reloadTeamData(); }, [reloadTeamData]);
 
   return (
     <div className="app-layout" style={{ fontFamily: 'var(--font-sans)', display: 'flex', minHeight: '100vh', backgroundColor: '#F8FAFC', width: '100vw' }}>
@@ -456,8 +342,8 @@ export default function DesignTeamDashboard({
         
         {/* Logo Header */}
         <div className="sidebar-logo" style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: '#FFFFFF', color: '#34328C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.3rem', boxShadow: '0 4px 6px rgba(0,0,0,0.15)' }}>
-            T
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.15)', overflow: 'hidden' }}>
+            <img src="/tescologo.png" alt="Tesco Structures" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div>
             <div style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '0.3px', color: '#FFFFFF' }}>Tesco Structures</div>
@@ -620,7 +506,7 @@ export default function DesignTeamDashboard({
                     </div>
                     <button
                       type="button"
-                      onClick={() => setTeamNotifications(teamNotifications.map(n => ({ ...n, read: true })))}
+                      onClick={() => { notificationsApi.markAllRead('team'); setTeamNotifications(teamNotifications.map(n => ({ ...n, read: true }))); }}
                       style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
                     >
                       Mark all read
@@ -633,7 +519,7 @@ export default function DesignTeamDashboard({
                       <div
                         key={notif.id}
                         onClick={() => {
-                          setTeamNotifications(teamNotifications.map(n => n.id === notif.id ? { ...n, read: true } : n));
+                          if (notif._id) notificationsApi.markRead(notif._id); setTeamNotifications(teamNotifications.map(n => n.id === notif.id ? { ...n, read: true } : n));
                           if (notif.type === 'revision') setCurrentTab('Head Revisions');
                           else if (notif.type === 'assignment') setCurrentTab('Requirements');
                           setShowNotificationsPopover(false);
@@ -1225,7 +1111,7 @@ export default function DesignTeamDashboard({
                 </div>
                 {teamNotifications.filter(n => !n.read).length > 0 && (
                   <button
-                    onClick={() => setTeamNotifications(teamNotifications.map(n => ({ ...n, read: true })))}
+                    onClick={() => { notificationsApi.markAllRead('team'); setTeamNotifications(teamNotifications.map(n => ({ ...n, read: true }))); }}
                     style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'background-color 0.2s' }}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1D4ED8'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
@@ -1251,7 +1137,7 @@ export default function DesignTeamDashboard({
                     <div 
                       key={notif.id}
                       onClick={() => {
-                        setTeamNotifications(teamNotifications.map(n => n.id === notif.id ? { ...n, read: true } : n));
+                        if (notif._id) notificationsApi.markRead(notif._id); setTeamNotifications(teamNotifications.map(n => n.id === notif.id ? { ...n, read: true } : n));
                         if (notif.type === 'revision') {
                           setCurrentTab('Submittal Status');
                         } else {

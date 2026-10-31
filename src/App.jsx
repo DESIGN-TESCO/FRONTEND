@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import DesignTeamDashboard from './DesignTeamDashboard';
+import TeamAccounts from './TeamAccounts';
 import {
   LayoutDashboard,
   Inbox,
@@ -47,569 +48,32 @@ import {
   Save,
   Palette
 } from 'lucide-react';
+import {
+  authApi, requestsApi, designersApi, boqsApi, submittalsApi, drawingsApi,
+  documentsApi, revisionsApi, activitiesApi, notificationsApi, statsApi,
+  filesApi, isAuthenticated, getUser,
+} from './api/client';
 
-// Seeding Designers Data
-const initialDesigners = [
-  {
-    id: 'D01',
-    name: 'Rahul Sharma',
-    role: 'Senior Architect / Structural',
-    currentTasks: 3,
-    availableCapacity: '15 hrs',
-    workload: 75,
-    status: 'Available',
-    availability: 'Part-time',
-    avatar: 'RS',
-    experience: '8 Years',
-    pendingReview: 1,
-    revisions: 2,
-    avgCompletionTime: '4.2 Days',
-    completedProjects: 84,
-    revisionRate: '8.5%'
-  },
-  {
-    id: 'D02',
-    name: 'Amit Patel',
-    role: 'PEB Specialist',
-    currentTasks: 4,
-    availableCapacity: '2 hrs',
-    workload: 95,
-    status: 'Busy',
-    availability: 'Full-time',
-    avatar: 'AP',
-    experience: '6 Years',
-    pendingReview: 2,
-    revisions: 4,
-    avgCompletionTime: '5.8 Days',
-    completedProjects: 62,
-    revisionRate: '12.4%'
-  },
-  {
-    id: 'D03',
-    name: 'Priya Das',
-    role: '3D Visualizer & Modeler',
-    currentTasks: 1,
-    availableCapacity: '25 hrs',
-    workload: 30,
-    status: 'Available',
-    availability: 'Full-time',
-    avatar: 'PD',
-    experience: '4 Years',
-    pendingReview: 0,
-    revisions: 1,
-    avgCompletionTime: '2.5 Days',
-    completedProjects: 45,
-    revisionRate: '4.8%'
-  },
-  {
-    id: 'D04',
-    name: 'Vikram Malhotra',
-    role: '2D Draftsman & Detailing',
-    currentTasks: 2,
-    availableCapacity: '18 hrs',
-    workload: 60,
-    status: 'Available',
-    availability: 'Full-time',
-    avatar: 'VM',
-    experience: '5 Years',
-    pendingReview: 1,
-    revisions: 3,
-    avgCompletionTime: '3.1 Days',
-    completedProjects: 98,
-    revisionRate: '7.2%'
-  },
-  {
-    id: 'D05',
-    name: 'Neha Roy',
-    role: 'BOQ & Estimator',
-    currentTasks: 0,
-    availableCapacity: '40 hrs',
-    workload: 0,
-    status: 'Available',
-    availability: 'Full-time',
-    avatar: 'NR',
-    experience: '3 Years',
-    pendingReview: 0,
-    revisions: 0,
-    avgCompletionTime: '1.8 Days',
-    completedProjects: 31,
-    revisionRate: '3.1%'
-  },
-  {
-    id: 'D06',
-    name: 'Design Head',
-    role: 'Design Head / Manager',
-    currentTasks: 0,
-    availableCapacity: '40 hrs',
-    workload: 0,
-    status: 'Available',
-    availability: 'Full-time',
-    avatar: 'DH',
-    experience: '12 Years',
-    pendingReview: 0,
-    revisions: 0,
-    avgCompletionTime: '2.0 Days',
-    completedProjects: 154,
-    revisionRate: '2.1%'
-  }
-];
+// Seed data removed — all data now loads from the backend API.
 
-// Seeding Design Requests
-const initialDesignRequests = [
-  {
-    id: 'REQ-2026-001',
-    leadId: 'LD-1001',
-    customerName: 'Aries Warehousing Pvt. Ltd.',
-    projectName: 'PEB Warehouse',
-    projectType: 'PEB',
-    service: 'PEB Shed Designing',
-    requirement: '2D + 3D',
-    priority: 'Urgent',
-    requestedBy: 'Ritesh Deshmukh (Sales Manager)',
-    assignedDesigner: 'Amit Patel',
-    dueDate: '2026-07-20',
-    status: 'In Progress',
-    budget: '$48,000',
-    timeline: '3 Weeks',
-    location: 'MIDC Chakan, Block G, Pune',
-    deliverables: ['Roof Layout', 'Elevation', '2D Drawing', '3D Exterior Render', 'BOQ', 'Fabrication Drawing'],
-    pebDetails: {
-      span: '36 meters',
-      length: '150 meters',
-      width: '60 meters',
-      height: '11 meters',
-      builtUpArea: '9,000 sq meters',
-      roofType: 'Standing Seam Double Skin',
-      wallCladding: 'PUF Sandwich Panels (50mm)',
-      craneRequired: 'Yes - 10 Ton Single Girder EOT Crane',
-      heavyEquipment: 'Hydra and Scissor lifts for high works',
-      scope: 'Structural design calculation & Fabrication drawings',
-      budget: '$48,000',
-      timeline: '3 Weeks',
-      specialNotes: 'Mezzanine floor required for office space in front bay (15m x 15m).'
-    },
-    attachments: [
-      { name: 'survey_sheet.pdf', size: '4.8 MB', type: 'PDF' },
-      { name: 'cad_layout_draft.dwg', size: '18.2 MB', type: 'AutoCAD' },
-      { name: 'site_photo_east.png', size: '3.1 MB', type: 'Image' }
-    ],
-    comments: [
-      { sender: 'Ritesh Deshmukh', role: 'Sales Manager', text: 'Client wants to start fabrication by next month. Please expedite drawing reviews.', time: '2026-07-16 10:15 AM' },
-      { sender: 'Amit Patel', role: 'Designer', text: 'Working on structural member sizing. Grid coordinates approved.', time: '2026-07-16 02:30 PM' }
-    ],
-    history: [
-      { title: 'Sales Manager submitted request', time: '2026-07-15 11:30 AM', desc: 'Ritesh Deshmukh submitted the PEB Enquiry Form.' },
-      { title: 'Request & Assign Task', time: '2026-07-15 03:00 PM', desc: 'Review completed. Found valid with standard scope.' },
-      { title: 'Assigned to Designer', time: '2026-07-15 03:15 PM', desc: 'Assigned to Amit Patel for 2D + 3D detail.' },
-      { title: 'Designer started work', time: '2026-07-16 09:00 AM', desc: 'Amit Patel marked the task In Progress.' }
-    ]
-  },
-  {
-    id: 'REQ-2026-002',
-    leadId: 'LD-1002',
-    customerName: 'Sharmila Housing Society',
-    projectName: 'Residential Roof Structure',
-    projectType: 'Mangalore Tile Roofing',
-    service: 'Sloped Truss Roofing Design',
-    requirement: '2D Drawing',
-    priority: 'High',
-    requestedBy: 'Sanjay Dutt (Sales Manager)',
-    assignedDesigner: 'Vikram Malhotra',
-    dueDate: '2026-07-22',
-    status: 'Assigned',
-    budget: '$12,500',
-    timeline: '10 Days',
-    location: 'Sector 56, Gurgaon, Haryana',
-    deliverables: ['Floor Plan', 'Roof Layout', 'Elevation', 'Material Specification'],
-    residentialDetails: {
-      roofingType: 'Clay Tile Sloped Metal Frame',
-      area: '3,800 sq ft',
-      height: '14 ft',
-      width: '50 ft',
-      length: '76 ft',
-      foundation: 'Reinforced Concrete Columns',
-      existingStructure: 'Completed brick wall structure ready for roof frame setup',
-      waterproofing: 'APP Modified Bitumen Membrane',
-      heatInsulation: 'Glasswool roll with aluminum foil face',
-      budget: '$12,500',
-      timeline: '10 Days',
-      specialNotes: 'Heavy rainfall area. Requires high-gradient gutter layout designs.'
-    },
-    attachments: [
-      { name: 'structural_column_layout.pdf', size: '3.2 MB', type: 'PDF' },
-      { name: 'villa_reference_model.jpg', size: '1.8 MB', type: 'Image' }
-    ],
-    comments: [],
-    history: [
-      { title: 'Sales Manager submitted request', time: '2026-07-16 09:12 AM', desc: 'Sanjay Dutt submitted Residential Enquiry Form.' },
-      { title: 'Assigned to Designer', time: '2026-07-16 11:00 AM', desc: 'Design Head assigned project to Vikram Malhotra.' }
-    ]
-  },
-  {
-    id: 'REQ-2026-003',
-    leadId: 'LD-1003',
-    customerName: 'Tesco Corporate Office Plaza',
-    projectName: 'Commercial Glass Canopy',
-    projectType: 'Glass Roofing',
-    service: 'Glass & Steel Canopy',
-    requirement: 'BOQ',
-    priority: 'Medium',
-    requestedBy: 'Ritesh Deshmukh (Sales Manager)',
-    salesManager: 'Ritesh Deshmukh',
-    assignedDesigner: 'Priya Das',
-    dueDate: '2026-07-28',
-    status: 'Pending Review',
-    budget: '$25,000',
-    timeline: '15 Days',
-    location: 'Connaught Place, New Delhi',
-    deliverables: ['3D Exterior Render', 'Walkthrough Animation', '2D Drawing'],
-    pebDetails: {
-      span: '12 meters',
-      length: '30 meters',
-      width: '12 meters',
-      height: '9 meters',
-      builtUpArea: '360 sq meters',
-      roofType: 'Tempered Laminated Glass Panel Frame',
-      wallCladding: 'Stainless steel brackets and tension rods',
-      craneRequired: 'Yes - Boom Crane for glass lifting',
-      heavyEquipment: 'Spider glass handler assembly rig',
-      scope: 'Architectural rendering and glass joint layout detailing',
-      budget: '$25,000',
-      timeline: '15 Days',
-      specialNotes: 'Requires premium modern aesthetic. Needs mock presentation renders for the board review.'
-    },
-    attachments: [
-      { name: 'canopy_specs_rev2.docx', size: '1.2 MB', type: 'Word Document' },
-      { name: 'atrium_elevation.dwg', size: '9.4 MB', type: 'AutoCAD' }
-    ],
-    comments: [
-      { sender: 'Priya Das', role: 'Designer', text: 'I have uploaded the primary renders for initial review. Please check.', time: '2026-07-16 03:00 PM' }
-    ],
-    history: [
-      { title: 'Sales Manager submitted request', time: '2026-07-14 02:00 PM', desc: 'Ritesh Deshmukh submitted request for Tesco Plaza Atrium.' },
-      { title: 'Assigned to Designer', time: '2026-07-14 04:30 PM', desc: 'Design Head assigned Priya Das for 3D Visuals.' },
-      { title: 'Designer completed initial drawing', time: '2026-07-16 02:58 PM', desc: 'Priya Das submitted model layouts for Design Head review.' }
-    ]
-  },
-  {
-    id: 'REQ-2026-004',
-    leadId: 'LD-1004',
-    customerName: 'Choudhary Cold Storage',
-    projectName: 'Thermal Food Storage Shed',
-    projectType: 'PEB',
-    service: 'Thermal PEB Roofing',
-    requirement: '2D Drawing',
-    priority: 'Normal',
-    requestedBy: 'Sanjay Dutt (Sales Manager)',
-    assignedDesigner: 'Unassigned',
-    dueDate: '2026-08-05',
-    status: 'New',
-    budget: '$30,000',
-    timeline: '30 Days',
-    location: 'Bhiwandi Warehouse Zone, Mumbai',
-    deliverables: ['Roof Layout', 'Structural Drawing', 'BOQ'],
-    pebDetails: {
-      span: '28 meters',
-      length: '80 meters',
-      width: '40 meters',
-      height: '10 meters',
-      builtUpArea: '3,200 sq meters',
-      roofType: 'Standing Seam',
-      wallCladding: 'Insulated Rockwool Panels (80mm)',
-      craneRequired: 'No',
-      heavyEquipment: 'Standard scaffolding scaffolding systems',
-      scope: 'Structural analysis & material takeoff estimating',
-      budget: '$30,000',
-      timeline: '30 Days',
-      specialNotes: 'Extremely critical insulation ratings. Roof sandwich panel design must match cold storage standards.'
-    },
-    attachments: [
-      { name: 'layout_sketch_rough.png', size: '1.4 MB', type: 'Image' }
-    ],
-    comments: [],
-    history: [
-      { title: 'Sales Manager submitted request', time: '2026-07-16 04:10 PM', desc: 'Sanjay Dutt submitted request for Choudhary Cold Storage.' }
-    ]
-  },
-  {
-    id: 'REQ-2026-005',
-    leadId: 'LD-1005',
-    customerName: 'Tata Steel Processing Ltd.',
-    projectName: 'Processing Plant Shed',
-    projectType: 'PEB',
-    service: 'Industrial Plant Design',
-    requirement: '2D Layout + 3D Model',
-    priority: 'High',
-    requestedBy: 'Ritesh Deshmukh (Sales Manager)',
-    assignedDesigner: 'Amit Patel',
-    dueDate: '2026-07-15',
-    status: 'Completed',
-    budget: '$65,000',
-    timeline: '4 Weeks',
-    location: 'MIDC Ranjangaon, Pune',
-    deliverables: ['GA Layout', '3D Model', 'Structural drawings', 'BOQ Sheet'],
-    pebDetails: {
-      span: '42 meters',
-      length: '200 meters',
-      width: '80 meters',
-      height: '14 meters',
-      builtUpArea: '16,000 sq meters',
-      roofType: 'Standing Seam Insulation Double Skin',
-      wallCladding: 'Steel sheeting (0.50 mm)',
-      craneRequired: 'Yes - 25 Ton Crane',
-      scope: 'Structural design & fabrication detailing',
-      budget: '$65,000',
-      timeline: '4 Weeks'
-    },
-    attachments: [
-      { name: 'plant_shed_layout.dwg', size: '24.5 MB', type: 'AutoCAD' },
-      { name: 'struc_analysis_report.std', size: '4.2 MB', type: 'STAAD' }
-    ],
-    comments: [
-      { sender: 'Design Head', role: 'Coordinator', text: 'All design aspects check out. Drawings are approved for manufacturing.', time: '2026-07-14 04:00 PM' }
-    ],
-    history: [
-      { title: 'Project Approved by Design Head', time: '2026-07-14 04:00 PM', desc: 'Design Head completed final submittal check and approved the project.' }
-    ]
-  },
-  {
-    id: 'REQ-2026-006',
-    leadId: 'LD-1006',
-    customerName: 'Jindal Steel & Power',
-    projectName: 'Heavy Fabrication Workshop',
-    projectType: 'PEB',
-    service: 'Workshop Structural Detailing',
-    requirement: '2D Drawings',
-    priority: 'Normal',
-    requestedBy: 'Sanjay Dutt (Sales Manager)',
-    assignedDesigner: 'Vikram Malhotra',
-    dueDate: '2026-07-18',
-    status: 'Approved',
-    budget: '$55,000',
-    timeline: '3 Weeks',
-    location: 'Raigarh Plant Zone, Chhattisgarh',
-    deliverables: ['Erection Drawings', 'Part Drawings', '2D Drawings', 'BOQ'],
-    pebDetails: {
-      span: '30 meters',
-      length: '120 meters',
-      width: '50 meters',
-      height: '12 meters',
-      builtUpArea: '6,000 sq meters',
-      roofType: 'Single Skin standing seam',
-      wallCladding: 'Profiled metal sheet (0.50 mm)',
-      craneRequired: 'Yes - 15 Ton overhead EOT crane',
-      scope: 'Detailed 2D drawings & assembly models',
-      budget: '$55,000',
-      timeline: '3 Weeks'
-    },
-    attachments: [
-      { name: 'workshop_erection_plan.dwg', size: '15.6 MB', type: 'AutoCAD' }
-    ],
-    comments: [
-      { sender: 'Design Head', role: 'Coordinator', text: 'Drawings approved. Ready to dispatch.', time: '2026-07-17 11:30 AM' }
-    ],
-    history: [
-      { title: 'Approved by Design Head', time: '2026-07-17 11:30 AM', desc: 'Design Head approved final design submittals.' }
-    ]
-  },
-  {
-    id: 'REQ-2026-007',
-    leadId: 'LD-1007',
-    customerName: 'Mahindra Logistics Hub',
-    projectName: 'Logistics Sorting Terminal',
-    projectType: 'PEB',
-    service: 'PEB Layout & Detailing',
-    requirement: '2D Layouts + BOQ',
-    priority: 'High',
-    requestedBy: 'Ritesh Deshmukh (Sales Manager)',
-    assignedDesigner: 'Rahul Sharma',
-    dueDate: '2026-07-19',
-    status: 'Approved',
-    budget: '$70,000',
-    timeline: '4 Weeks',
-    location: 'Chakan Logistics Park, Pune',
-    deliverables: ['GA Layout', 'BOQ Sheet', 'Anchor Bolt Plan'],
-    pebDetails: {
-      span: '48 meters',
-      length: '250 meters',
-      width: '100 meters',
-      height: '15 meters',
-      builtUpArea: '25,000 sq meters',
-      roofType: 'Standing Seam Double Skin with Glasswool insulation',
-      wallCladding: 'Metal sheets with brick wall up to 3m',
-      craneRequired: 'No',
-      scope: 'Layout designing, anchor bolt detailing & BOQ generation',
-      budget: '$70,000',
-      timeline: '4 Weeks'
-    },
-    attachments: [
-      { name: 'logistics_hub_layout.dwg', size: '32.1 MB', type: 'AutoCAD' }
-    ],
-    comments: [
-      { sender: 'Design Head', role: 'Coordinator', text: 'Checked and approved. Please forward files to client.', time: '2026-07-18 02:45 PM' }
-    ],
-    history: [
-      { title: 'Approved by Design Head', time: '2026-07-18 02:45 PM', desc: 'Final review completed. Layout and anchor bolt plans approved.' }
-    ]
-  },
-  {
-    id: 'REQ-2026-008',
-    leadId: 'LD-1008',
-    customerName: 'AeroHub Terminal Complex',
-    projectName: 'Steel Truss Space Frame',
-    projectType: 'PEB',
-    service: 'Space Frame Designing',
-    requirement: '3D Render',
-    priority: 'High',
-    requestedBy: 'Salman Khan (Project Manager)',
-    projectManager: 'Salman Khan',
-    assignedDesigner: 'Rahul Sharma',
-    dueDate: '2026-08-02',
-    status: 'Pending Review',
-    budget: '$85,000',
-    timeline: '4 Weeks',
-    location: 'Kempegowda Int Airport, Bengaluru',
-    deliverables: ['3D Render', 'Walkthrough Animation', 'BOQ Sheet'],
-    pebDetails: {
-      span: '40 meters',
-      length: '180 meters',
-      width: '80 meters',
-      height: '16 meters',
-      builtUpArea: '14,400 sq meters',
-      roofType: 'Standing Seam',
-      wallCladding: 'Glass curtain wall with metal sheeting',
-      craneRequired: 'No',
-      scope: 'Space frame architectural structural design',
-      budget: '$85,000',
-      timeline: '4 Weeks'
-    },
-    attachments: [
-      { name: 'terminal_layout.dwg', size: '28.4 MB', type: 'AutoCAD' }
-    ],
-    comments: [
-      { sender: 'Rahul Sharma', role: 'Designer', text: 'Completed space frame rendering. Awaiting review.', time: '2026-07-27 10:00 AM' }
-    ],
-    history: [
-      { title: 'Sales Manager submitted request', time: '2026-07-25 09:00 AM', desc: 'Sanjay Dutt submitted space frame design request.' },
-      { title: 'Assigned to Designer', time: '2026-07-25 11:30 AM', desc: 'Assigned to Rahul Sharma.' },
-      { title: 'Designer completed submittal', time: '2026-07-27 10:00 AM', desc: 'Rahul Sharma submitted design files.' }
-    ]
-  }
-];
-
-const initialActivities = [
-  { id: 1, user: 'Sanjay Dutt', action: 'submitted new design request', target: 'REQ-2026-004 (Thermal Food Storage Shed)', time: '1 hour ago' },
-  { id: 2, user: 'Priya Das', action: 'completed draft rendering and sent for review', target: 'REQ-2026-003 (Commercial Glass Canopy)', time: '2 hours ago' },
-  { id: 3, user: 'Amit Patel', action: 'started work', target: 'REQ-2026-001 (PEB Warehouse)', time: '6 hours ago' },
-  { id: 4, user: 'Design Head', action: 'assigned request to Vikram Malhotra', target: 'REQ-2026-002 (Residential Roof Structure)', time: '8 hours ago' }
-];
-
-const initialBOQ = [
-  {
-    id: 'BOQ-2026-001',
-    project: 'PEB Warehouse (MIDC)',
-    projectType: 'PEB',
-    engineer: 'Neha Roy',
-    materialCount: 6,
-    estimatedCost: '₹17,410',
-    version: 'V2',
-    status: 'Approved',
-    materials: [
-      { item: 'M.S Pipes', quantity: '120', unit: 'rft', price: '15', total: '1800', category: 'M.S materials - type' },
-      { item: 'M.S Plates', quantity: '450', unit: 'kgs', price: '2', total: '900', category: 'M.S materials - type' },
-      { item: 'GI sheet', quantity: '500', unit: 'SqM', price: '22', total: '11000', category: 'Sheets - type' },
-      { item: 'uPVC Gutter', quantity: '250', unit: 'rft', price: '8', total: '2000', category: 'Accessories' },
-      { item: 'Screwa', quantity: '5000', unit: 'Nos', price: '0.15', total: '750', category: 'Accessories' },
-      { item: 'Paint - Enammel', quantity: '80', unit: 'lits', price: '12', total: '960', category: 'Accessories' }
-    ]
-  },
-  {
-    id: 'BOQ-2026-002',
-    project: 'Commercial Glass Canopy',
-    projectType: 'Glass Roofing',
-    engineer: 'Neha Roy',
-    materialCount: 3,
-    estimatedCost: '₹17,840',
-    version: 'V1',
-    status: 'Preparing',
-    materials: [
-      { item: 'Polycarbonate sheet', quantity: '380', unit: 'SqM', price: '40', total: '15200', category: 'Sheets - type' },
-      { item: 'M.S Tubes', quantity: '120', unit: 'rft', price: '18', total: '2160', category: 'M.S materials - type' },
-      { item: 'Aluminium Flats', quantity: '120', unit: 'Nos', price: '4', total: '480', category: 'Accessories' }
-    ]
-  },
-  {
-    id: 'BOQ-2026-003',
-    project: 'Residential Roof Structure',
-    projectType: 'Mangalore Tile Roofing',
-    engineer: 'Vikram Malhotra',
-    materialCount: 4,
-    estimatedCost: '₹9,675',
-    version: 'V3',
-    status: 'Waiting Approval',
-    materials: [
-      { item: 'uPVC sheet', quantity: '410', unit: 'SqM', price: '18', total: '7380', category: 'Sheets - type' },
-      { item: 'M.S Pipes', quantity: '80', unit: 'rft', price: '15', total: '1200', category: 'M.S materials - type' },
-      { item: 'Flashing sheet', quantity: '120', unit: 'rft', price: '6', total: '720', category: 'Accessories' },
-      { item: 'Sealent', quantity: '75', unit: 'Nos', price: '5', total: '375', category: 'Accessories' }
-    ]
-  }
-];
-
-const initialDrawings = [
-  { id: 'DWG-2D-001', name: 'Anchor_Bolt_Layout_Plan.dwg', folder: '2D Drawings', version: 'V2', designer: 'Vikram Malhotra', project: 'PEB Warehouse', date: '2026-07-16' },
-  { id: 'DWG-3D-002', name: 'Main_Shed_Perspective_Renders.max', folder: '3D Drawings', version: 'V1', designer: 'Priya Das', project: 'PEB Warehouse', date: '2026-07-15' },
-  { id: 'DWG-BOQ-003', name: 'Steel_Takeoff_Sheet.xlsx', folder: 'BOQ', version: 'V3', designer: 'Neha Roy', project: 'PEB Warehouse', date: '2026-07-16' },
-  { id: 'DWG-CAD-004', name: 'Truss_Member_Fabrication_Detailing.dwg', folder: '2D Drawings', version: 'V1', designer: 'Amit Patel', project: 'PEB Warehouse', date: '2026-07-17' },
-  { id: 'DWG-RND-005', name: 'Canopy_Atrium_Photorealistic.png', folder: '3D Drawings', version: 'V2', designer: 'Priya Das', project: 'Commercial Glass Canopy', date: '2026-07-16' }
-];
-
-const initialDocuments = [
-  { id: 'DOC-001', name: 'MIDC_Chakan_Site_Soil_Report.pdf', category: '2D Requirements', project: 'PEB Warehouse', uploadedBy: 'Ritesh Deshmukh', version: 'V1', date: '2026-07-14' },
-  { id: 'DOC-002', name: 'Roof_Load_Calculation_Shed.pdf', category: '2D Requirements', project: 'PEB Warehouse', uploadedBy: 'Amit Patel', version: 'V2', date: '2026-07-16' },
-  { id: 'DOC-003', name: 'Commercial_Canopy_Quotation.pdf', category: 'BOQ Files', project: 'Commercial Glass Canopy', uploadedBy: 'Ritesh Deshmukh', version: 'V1', date: '2026-07-14' },
-  { id: 'DOC-004', name: 'Choudhary_Shed_Reference_Photos.zip', category: 'Site References', project: 'Thermal Food Storage Shed', uploadedBy: 'Sanjay Dutt', version: 'V1', date: '2026-07-16' }
-];
-
-const initialRevisions = [
-  { id: 'REV-001', project: 'Commercial Glass Canopy', revNumber: 'Rev 1', designer: 'Priya Das', requestedBy: 'Ritesh Deshmukh', dueDate: '2026-07-19', status: 'Pending', comments: 'Client wants larger steel columns for extra wind shear resistance.', oldVersion: 'Canopy_Model_v1.0.max', newVersion: 'Canopy_Model_v1.1.max', date: '2026-07-17' },
-  { id: 'REV-002', project: 'PEB Warehouse', revNumber: 'Rev 2', designer: 'Amit Patel', requestedBy: 'Design Head', dueDate: '2026-07-18', status: 'Urgent', comments: 'Correct secondary sag rod spacing to correspond to heavy EOT crane vibration loads.', oldVersion: 'PEB_Warehouse_Layout_v2.0.dwg', newVersion: 'PEB_Warehouse_Layout_v2.1.dwg', date: '2026-07-18' }
-];
-
-const getLeadId = (r) => {
-  if (!r) return 'N/A';
-  if (r.leadId && r.leadId !== 'N/A') return r.leadId;
-  const map = {
-    'REQ-2026-001': 'LD-1001',
-    'REQ-2026-002': 'LD-1002',
-    'REQ-2026-003': 'LD-1003',
-    'REQ-2026-004': 'LD-1004',
-    'REQ-2026-005': 'LD-1005',
-    'REQ-2026-006': 'LD-1006',
-    'REQ-2026-007': 'LD-1007',
-    'REQ-2026-008': 'LD-1008'
-  };
-  if (map[r.id]) return map[r.id];
-  const hash = r.id ? r.id.split('-').reduce((acc, char) => acc + char.charCodeAt(0), 0) : Math.floor(Math.random() * 9000);
-  return `LD-${1000 + (hash % 1000)}`;
-};
+const getLeadId = (r) => (r && r.leadId && r.leadId !== 'N/A') ? r.leadId : 'N/A';
 
 function App() {
   const [currentTab, setCurrentTab] = useState('Dashboard');
-  const [requests, setRequests] = useState(initialDesignRequests);
-  const [designers, setDesigners] = useState(initialDesigners);
-  const [activities, setActivities] = useState(initialActivities);
+  const [requests, setRequests] = useState([]);
+  const [designers, setDesigners] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeDrawerTab, setActiveDrawerTab] = useState('Requirements');
   const [selectedDesignerName, setSelectedDesignerName] = useState(null);
 
   // Expanded CRM States
-  const [projectsList, setProjectsList] = useState(initialDesignRequests.filter(r => r.status !== 'New'));
-  const [boqList, setBoqList] = useState(initialBOQ);
-  const [drawingsList, setDrawingsList] = useState(initialDrawings);
-  const [documentsList, setDocumentsList] = useState(initialDocuments);
-  const [revisionsList, setRevisionsList] = useState(initialRevisions);
+  const [projectsList, setProjectsList] = useState([]);
+  const [boqList, setBoqList] = useState([]);
+  const [drawingsList, setDrawingsList] = useState([]);
+  const [documentsList, setDocumentsList] = useState([]);
+  const [revisionsList, setRevisionsList] = useState([]);
   const [selectedBoqId, setSelectedBoqId] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [activeProjectTab, setActiveProjectTab] = useState('Overview');
@@ -674,7 +138,7 @@ function App() {
   const [newBoqVersion, setNewBoqVersion] = useState('V1');
   const [newBoqStatus, setNewBoqStatus] = useState('Preparing');
 
-  const handleGenerateBoq = () => {
+  const handleGenerateBoq = async () => {
     if (!selectedLeadIdForBoq) {
       alert('Please select a Lead ID.');
       return;
@@ -792,9 +256,12 @@ function App() {
       materials: calculatedMaterials
     };
     
-    setBoqList(prev => [newBoq, ...prev]);
-    setIsCreateBoqFormOpen(false);
-    setSelectedBoqId(newBoq.id);
+    try {
+      const created = await boqsApi.create({ project: newBoq.project, projectType: newBoq.projectType, engineer: newBoq.engineer, version: newBoq.version, status: newBoq.status, materials: newBoq.materials, leadId: getLeadId(req) });
+      setBoqList(prev => [created, ...prev]);
+      setIsCreateBoqFormOpen(false);
+      setSelectedBoqId(created.id);
+    } catch (err) { alert(err.message || 'Could not create BOQ.'); }
   };
 
   // Design Requirement Form states
@@ -888,7 +355,7 @@ function App() {
     setIsRequirementFormOpen(true);
   };
 
-  const handleSaveRequirementForm = () => {
+  const handleSaveRequirementForm = async () => {
     if (!selectedRequest) return;
     const updatedDetails = {
       ...selectedRequest.pebDetails,
@@ -913,93 +380,64 @@ function App() {
       gutterProvision: gutterProvision,
       builtUpArea: `${(parseFloat(plotLength) || 0) * (parseFloat(plotWidth) || 0)} sq ft`
     };
-    setRequests(prev => prev.map(r => r.id === selectedRequest.id ? { ...r, pebDetails: updatedDetails } : r));
-    setSelectedRequest(prev => prev ? { ...prev, pebDetails: updatedDetails } : null);
-    setIsRequirementFormOpen(false);
+    try {
+      const updated = await requestsApi.saveRequirement(selectedRequest.id, { pebDetails: updatedDetails });
+      setRequests(prev => prev.map(r => r.id === updated.id ? updated : r));
+      setSelectedRequest(updated);
+      setIsRequirementFormOpen(false);
+    } catch (err) { alert(err.message || 'Could not save requirement details.'); }
   };
 
-  const handleUpdateMaterialQty = (boqId, materialIndex, newQty) => {
-    setBoqList(prev => prev.map(b => {
-      if (b.id !== boqId) return b;
-      const updatedMaterials = [...b.materials];
-      const mat = { ...updatedMaterials[materialIndex] };
-      mat.quantity = newQty;
-      const qtyVal = parseFloat(newQty);
-      const priceVal = parseFloat(mat.price);
-      if (!isNaN(qtyVal) && !isNaN(priceVal)) {
-        mat.total = (qtyVal * priceVal).toFixed(2);
-      } else {
-        mat.total = '0';
-      }
-      updatedMaterials[materialIndex] = mat;
-      const sum = updatedMaterials.reduce((acc, m) => acc + parseFloat(m.total || 0), 0);
-      return {
-        ...b,
-        materials: updatedMaterials,
-        estimatedCost: `₹${sum.toLocaleString()}`
-      };
-    }));
+  const handleUpdateMaterialQty = async (boqId, materialIndex, newQty) => {
+    const b = boqList.find(x => x.id === boqId);
+    if (!b) return;
+    const updatedMaterials = b.materials.map((m, idx) => {
+      if (idx !== materialIndex) return m;
+      const qtyVal = parseFloat(newQty), priceVal = parseFloat(m.price);
+      const total = (!isNaN(qtyVal) && !isNaN(priceVal)) ? (qtyVal * priceVal).toFixed(2) : '0';
+      return { ...m, quantity: newQty, total };
+    });
+    const sum = updatedMaterials.reduce((acc, m) => acc + parseFloat(m.total || 0), 0);
+    setBoqList(prev => prev.map(x => x.id === boqId ? { ...x, materials: updatedMaterials, estimatedCost: `₹${sum.toLocaleString()}` } : x));
+    try { await boqsApi.update(boqId, { materials: updatedMaterials }); } catch { /* keep UI */ }
   };
 
-  const handleCreateMaterial = (boqId) => {
-    if (!newMatName.trim()) {
-      alert('Please enter a material name.');
-      return;
-    }
-    setBoqList(prev => prev.map(b => {
-      if (b.id !== boqId) return b;
-      const newMat = {
-        item: newMatName,
-        quantity: newMatQty || '0',
-        unit: newMatUnit,
-        price: newMatPrice || '0',
-        total: ((parseFloat(newMatQty) || 0) * (parseFloat(newMatPrice) || 0)).toFixed(2),
-        category: newMatCategory
-      };
-      const updatedMaterials = [...b.materials, newMat];
-      const sum = updatedMaterials.reduce((acc, m) => acc + parseFloat(m.total || 0), 0);
-      return {
-        ...b,
-        materials: updatedMaterials,
-        estimatedCost: `₹${sum.toLocaleString()}`
-      };
-    }));
-    setNewMatName('');
-    setNewMatQty('');
-    setNewMatPrice('');
+  const handleCreateMaterial = async (boqId) => {
+    if (!newMatName.trim()) { alert('Please enter a material name.'); return; }
+    const b = boqList.find(x => x.id === boqId);
+    if (!b) return;
+    const newMat = {
+      item: newMatName, quantity: newMatQty || '0', unit: newMatUnit, price: newMatPrice || '0',
+      total: ((parseFloat(newMatQty) || 0) * (parseFloat(newMatPrice) || 0)).toFixed(2), category: newMatCategory,
+    };
+    const updatedMaterials = [...b.materials, newMat];
+    const sum = updatedMaterials.reduce((acc, m) => acc + parseFloat(m.total || 0), 0);
+    setBoqList(prev => prev.map(x => x.id === boqId ? { ...x, materials: updatedMaterials, estimatedCost: `₹${sum.toLocaleString()}` } : x));
+    setNewMatName(''); setNewMatQty(''); setNewMatPrice('');
+    try { await boqsApi.update(boqId, { materials: updatedMaterials }); } catch { /* keep UI */ }
   };
 
-  const handleDeleteMaterial = (boqId, materialIndex) => {
-    setBoqList(prev => prev.map(b => {
-      if (b.id !== boqId) return b;
-      const updatedMaterials = b.materials.filter((_, idx) => idx !== materialIndex);
-      const sum = updatedMaterials.reduce((acc, m) => acc + parseFloat(m.total || 0), 0);
-      return {
-        ...b,
-        materials: updatedMaterials,
-        estimatedCost: `₹${sum.toLocaleString()}`
-      };
-    }));
+  const handleDeleteMaterial = async (boqId, materialIndex) => {
+    const b = boqList.find(x => x.id === boqId);
+    if (!b) return;
+    const updatedMaterials = b.materials.filter((_, idx) => idx !== materialIndex);
+    const sum = updatedMaterials.reduce((acc, m) => acc + parseFloat(m.total || 0), 0);
+    setBoqList(prev => prev.map(x => x.id === boqId ? { ...x, materials: updatedMaterials, estimatedCost: `₹${sum.toLocaleString()}` } : x));
+    try { await boqsApi.update(boqId, { materials: updatedMaterials }); } catch { /* keep UI */ }
   };
 
   
   // Inline date editor state
   const [editingDateId, setEditingDateId] = useState(null);
-  const handleDateChange = (id, newDate) => {
+  const handleDateChange = async (id, newDate) => {
     setRequests(prev => prev.map(r => r.id === id ? { ...r, dueDate: newDate } : r));
     setProjectsList(prev => prev.map(r => r.id === id ? { ...r, dueDate: newDate } : r));
-    if (selectedRequest && selectedRequest.id === id) {
-      setSelectedRequest(prev => prev ? { ...prev, dueDate: newDate } : null);
-    }
+    if (selectedRequest && selectedRequest.id === id) setSelectedRequest(prev => prev ? { ...prev, dueDate: newDate } : null);
+    try { await requestsApi.update(id, { dueDate: newDate }); } catch { /* keep UI */ }
   };
 
   // Notifications State
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Request Submitted', message: 'Sanjay Dutt submitted REQ-2026-004 (Thermal Food Storage Shed)', read: false, time: '10:04 AM', category: 'Assignments' },
-    { id: 2, title: 'Submission for Review', message: 'Priya Das uploaded Glass Atrium Renders for review', read: false, time: '09:42 AM', category: 'Reviews' },
-    { id: 3, title: 'Urgent Revision Logged', message: 'Amit Patel assigned Revision V2 for PEB structures', read: true, time: 'Yesterday', category: 'Revisions' },
-    { id: 4, title: 'Project Design Completed', message: 'Rahul Sharma finalized Truss designs for residential truss', read: true, time: '2 days ago', category: 'Completed' }
-  ]);
+  const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const headNotifRef = React.useRef(null);
 
@@ -1042,264 +480,83 @@ function App() {
     setAssignNotes('');
   };
 
-  const handleAssignDesignerSubmit = (e) => {
+  const handleAssignDesignerSubmit = async (e) => {
     e.preventDefault();
     const req = assignModalRequest || selectedRequest;
     if (!req || !assigneeId) return;
-
     const designerObj = designers.find(d => d.id === assigneeId);
     if (!designerObj) return;
-
-    // Update requests state
-    const updatedRequests = requests.map(r => {
-      if (r.id === req.id) {
-        const newHistory = [
-          {
-            title: 'Assigned to Designer',
-            time: new Date().toISOString().replace('T', ' ').substring(0, 16),
-            desc: `Assigned to ${designerObj.name}. Est: ${assignEstHours} Hrs. Due: ${assignDueDate || 'No Due Date'}.`
-          },
-          ...r.history
-        ];
-        return {
-          ...r,
-          assignedDesigner: designerObj.name,
-          dueDate: assignDueDate,
-          priority: assignPriority,
-          status: 'Assigned',
-          history: newHistory
-        };
-      }
-      return r;
-    });
-
-    const updatedDesigners = designers.map(d => {
-      if (d.id === assigneeId) {
-        return {
-          ...d,
-          currentTasks: d.currentTasks + 1,
-          workload: Math.min(100, d.workload + 15),
-          status: 'Busy'
-        };
-      }
-      return d;
-    });
-
-    const newActivity = {
-      id: Date.now(),
-      user: 'Design Head',
-      action: `assigned project to ${designerObj.name}`,
-      target: `${req.id} (${req.projectName})`,
-      time: 'Just now'
-    };
-
-    setRequests(updatedRequests);
-    setProjectsList(updatedRequests.filter(r => r.status !== 'New'));
-    setDesigners(updatedDesigners);
-    setActivities([newActivity, ...activities]);
-    
-    // Add Notification
-    setNotifications([
-      {
-        id: Date.now(),
-        title: 'Designer Assigned',
-        message: `Assigned ${req.id} to ${designerObj.name}`,
-        read: false,
-        time: 'Just now',
-        category: 'Assignments'
-      },
-      ...notifications
-    ]);
-
-    if (selectedRequest && selectedRequest.id === req.id) {
-      setSelectedRequest(updatedRequests.find(r => r.id === req.id));
-    }
-    
-    setIsAssignModalOpen(false);
-    setAssignModalRequest(null);
-    alert(`Success: Project successfully assigned to ${designerObj.name}.`);
+    try {
+      await requestsApi.assign(req.id, { assigneeId, dueDate: assignDueDate, priority: assignPriority, estHours: assignEstHours, notes: assignNotes, notify: notifyDesignerCheckbox });
+      await loadData();
+      setIsAssignModalOpen(false);
+      setAssignModalRequest(null);
+      alert(`Success: Project successfully assigned to ${designerObj.name}.`);
+    } catch (err) { alert(err.message || 'Could not assign designer.'); }
   };
 
-  const handleDirectAssignDesigner = (requestId, designerName) => {
-    const designerObj = designers.find(d => d.name === designerName);
-    
-    const updatedRequests = requests.map(r => {
-      if (r.id === requestId) {
-        const willBeUnassigned = designerName === 'Unassigned' || !designerName;
-        const newHistory = [
-          {
-            title: 'Assigned to Designer',
-            time: new Date().toISOString().replace('T', ' ').substring(0, 16),
-            desc: willBeUnassigned 
-              ? `Unassigned from ${r.assignedDesigner}`
-              : `Assigned directly to ${designerName}`
-          },
-          ...r.history
-        ];
-
-        return {
-          ...r,
-          assignedDesigner: willBeUnassigned ? 'Unassigned' : designerName,
-          status: willBeUnassigned ? 'New' : 'Assigned',
-          history: newHistory
-        };
-      }
-      return r;
-    });
-
-    const targetRequest = requests.find(r => r.id === requestId);
-    const prevDesignerName = targetRequest ? targetRequest.assignedDesigner : 'Unassigned';
-
-    const updatedDesigners = designers.map(d => {
-      let currentTasks = d.currentTasks;
-      let workload = d.workload;
-      let status = d.status;
-
-      if (prevDesignerName !== 'Unassigned' && d.name === prevDesignerName) {
-        currentTasks = Math.max(0, currentTasks - 1);
-        workload = Math.max(0, workload - 15);
-      }
-      if (designerName !== 'Unassigned' && d.name === designerName) {
-        currentTasks = currentTasks + 1;
-        workload = Math.min(100, workload + 15);
-      }
-
-      status = workload > 85 ? 'Busy' : 'Available';
-
-      return { ...d, currentTasks, workload, status };
-    });
-
-    setRequests(updatedRequests);
-    setProjectsList(updatedRequests.filter(r => r.status !== 'New'));
-    setDesigners(updatedDesigners);
-
-    const newActivity = {
-      id: Date.now(),
-      user: 'Design Head',
-      action: designerName !== 'Unassigned' 
-        ? `reassigned request to ${designerName}`
-        : `unassigned request`,
-      target: `${requestId}`,
-      time: 'Just now'
-    };
-    setActivities([newActivity, ...activities]);
+  const handleDirectAssignDesigner = async (requestId, designerName) => {
+    try {
+      await requestsApi.setDesigner(requestId, designerName || 'Unassigned');
+      await loadData();
+    } catch (err) { alert(err.message || 'Could not update assignment.'); }
   };
 
-  const updateRequestStatus = (statusName, actionMessage, reqObj = null) => {
+  const updateRequestStatus = async (statusName, actionMessage, reqObj = null) => {
     const activeReq = reqObj || selectedRequest;
     if (!activeReq) return;
-
-    const updatedRequests = requests.map(r => {
-      if (r.id === activeReq.id) {
-        const newHistory = [
-          {
-            title: actionMessage,
-            time: new Date().toISOString().replace('T', ' ').substring(0, 16),
-            desc: `Action performed by Design Head CRM.`
-          },
-          ...r.history
-        ];
-        return {
-          ...r,
-          status: statusName,
-          history: newHistory
-        };
+    try {
+      await requestsApi.setStatus(activeReq.id, statusName, actionMessage);
+      await loadData();
+      if (statusName === 'Completed' || statusName === 'Approved') {
+        alert(`Success: Design files for ${activeReq.projectName} (${activeReq.id}) have been automatically sent to ${activeReq.requestedBy}.`);
       }
-      return r;
-    });
-
-    const newActivity = {
-      id: Date.now(),
-      user: 'Design Head',
-      action: actionMessage.toLowerCase(),
-      target: `${activeReq.id} (${activeReq.projectName})`,
-      time: 'Just now'
-    };
-
-    setRequests(updatedRequests);
-    setProjectsList(updatedRequests.filter(r => r.status !== 'New'));
-    setActivities([newActivity, ...activities]);
-    setSelectedRequest(updatedRequests.find(r => r.id === activeReq.id));
-
-    setNotifications([
-      {
-        id: Date.now(),
-        title: 'Status Approved & Shared',
-        message: `Design files for ${activeReq.id} automatically sent to ${activeReq.requestedBy}`,
-        read: false,
-        time: 'Just now',
-        category: 'Reviews'
-      },
-      ...notifications
-    ]);
-
-    if (statusName === 'Completed' || statusName === 'Approved') {
-      alert(`Success: Design files for ${activeReq.projectName} (${activeReq.id}) have been automatically sent to ${activeReq.requestedBy}.`);
-    }
+    } catch (err) { alert(err.message || 'Could not update status.'); }
   };
 
-  const handleRequestRevisionSubmit = (e) => {
+  const handleApprove = async (r) => {
+    const req = r || selectedRequest; if (!req) return;
+    try {
+      await requestsApi.approve(req.id);
+      await loadData();
+      alert(`Design approved for ${req.projectName || req.id}. The approved files are now available to Procurement.`);
+    } catch (e) { alert(e.message || 'Could not approve.'); }
+  };
+  const handleReject = async (r) => {
+    const req = r || selectedRequest; if (!req) return;
+    const reason = window.prompt('Reason for rejection:');
+    if (reason === null) return;
+    try { await requestsApi.reject(req.id, reason); await loadData(); alert('Design rejected.'); }
+    catch (e) { alert(e.message || 'Could not reject.'); }
+  };
+  const handleRequestChanges = async (r) => {
+    const req = r || selectedRequest; if (!req) return;
+    const remarks = window.prompt('Remarks / changes required:');
+    if (remarks === null) return;
+    try { await requestsApi.requestChanges(req.id, remarks); await loadData(); alert('Sent back to the designer for changes.'); }
+    catch (e) { alert(e.message || 'Could not request changes.'); }
+  };
+
+  const handleRequestRevisionSubmit = async (e) => {
     e.preventDefault();
     if (!revisionComment.trim() || !selectedRequest) return;
-    
     const currentRevs = revisionsList.filter(r => r.project === selectedRequest.projectName);
     const newRevNumber = `Rev ${currentRevs.length + 1}`;
-    
-    const newRev = {
-      id: `REV-00${revisionsList.length + 1}`,
-      project: selectedRequest.projectName,
-      revNumber: newRevNumber,
-      designer: selectedRequest.assignedDesigner || 'Unassigned',
-      requestedBy: 'Design Head',
-      dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'Pending',
-      comments: revisionComment,
-      oldVersion: 'Drawing_Current.dwg',
-      newVersion: 'Awaiting Submittal',
-      date: new Date().toISOString().split('T')[0]
-    };
-    
-    setRevisionsList(prev => [newRev, ...prev]);
-
-    // Also update request status to 'In Progress' to reflect revision requested
-    const updatedRequests = requests.map(r => {
-      if (r.id === selectedRequest.id) {
-        const newHistory = [
-          {
-            title: `Revision Requested (${newRevNumber})`,
-            time: new Date().toISOString().replace('T', ' ').substring(0, 16),
-            desc: `Comments: ${revisionComment}`
-          },
-          ...r.history
-        ];
-        return {
-          ...r,
-          status: 'In Progress',
-          history: newHistory
-        };
-      }
-      return r;
-    });
-    
-    setRequests(updatedRequests);
-    setProjectsList(updatedRequests.filter(r => r.status !== 'New'));
-    setSelectedRequest(updatedRequests.find(r => r.id === selectedRequest.id));
-    setRevisionComment('');
-    
-    // Add Notification
-    setNotifications([
-      {
-        id: Date.now(),
-        title: 'Revision Requested',
-        message: `Requested ${newRevNumber} for ${selectedRequest.projectName}`,
-        read: false,
-        time: 'Just now',
-        category: 'Revisions'
-      },
-      ...notifications
-    ]);
-    
-    alert(`Success: Revision requested successfully for ${selectedRequest.projectName}.`);
+    try {
+      await revisionsApi.create({
+        project: selectedRequest.projectName, revNumber: newRevNumber,
+        designer: selectedRequest.assignedDesigner || 'Unassigned', requestedBy: 'Design Head',
+        requestId: selectedRequest.id,
+        dueDate: new Date(Date.now() + 2*24*60*60*1000).toISOString().split('T')[0],
+        status: 'Pending', comments: revisionComment,
+        oldVersion: 'Drawing_Current.dwg', newVersion: 'Awaiting Submittal',
+        date: new Date().toISOString().split('T')[0],
+      });
+      await requestsApi.setStatus(selectedRequest.id, 'In Progress', `Revision Requested (${newRevNumber}): ${revisionComment}`);
+      setRevisionComment('');
+      await loadData();
+      alert(`Success: Revision requested successfully for ${selectedRequest.projectName}.`);
+    } catch (err) { alert(err.message || 'Could not request revision.'); }
   };
 
   const handleOpenRevisionModal = (req) => {
@@ -1308,100 +565,39 @@ function App() {
     setIsRevisionModalOpen(true);
   };
 
-  const handleRevisionModalSubmit = (e) => {
+  const handleRevisionModalSubmit = async (e) => {
     e.preventDefault();
     if (!revisionModalComments.trim() || !revisionModalRequest) return;
-
     const currentRevs = revisionsList.filter(r => r.project === revisionModalRequest.projectName);
     const newRevNumber = `Rev ${currentRevs.length + 1}`;
-
-    const newRev = {
-      id: `REV-00${revisionsList.length + 1}`,
-      project: revisionModalRequest.projectName,
-      revNumber: newRevNumber,
-      designer: revisionModalRequest.assignedDesigner || 'Unassigned',
-      requestedBy: 'Design Head',
-      dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'Pending',
-      comments: revisionModalComments,
-      oldVersion: 'Drawing_Current.dwg',
-      newVersion: 'Awaiting Submittal',
-      date: new Date().toISOString().split('T')[0]
-    };
-
-    setRevisionsList(prev => [newRev, ...prev]);
-
-    // Also update request status to 'In Progress' to reflect revision requested
-    const updatedRequests = requests.map(r => {
-      if (r.id === revisionModalRequest.id) {
-        const newHistory = [
-          {
-            title: `Revision Requested (${newRevNumber})`,
-            time: new Date().toISOString().replace('T', ' ').substring(0, 16),
-            desc: `Comments: ${revisionModalComments}`
-          },
-          ...r.history
-        ];
-        return {
-          ...r,
-          status: 'In Progress',
-          history: newHistory
-        };
-      }
-      return r;
-    });
-
-    setRequests(updatedRequests);
-    setProjectsList(updatedRequests.filter(r => r.status !== 'New'));
-    
-    if (selectedRequest && selectedRequest.id === revisionModalRequest.id) {
-      setSelectedRequest(updatedRequests.find(r => r.id === revisionModalRequest.id));
-    }
-
-    // Add Notification
-    setNotifications([
-      {
-        id: Date.now(),
-        title: 'Revision Requested',
-        message: `Requested ${newRevNumber} for ${revisionModalRequest.projectName}`,
-        read: false,
-        time: 'Just now',
-        category: 'Revisions'
-      },
-      ...notifications
-    ]);
-
-    setIsRevisionModalOpen(false);
-    setRevisionModalRequest(null);
-    setRevisionModalComments('');
-    alert(`Success: Revision requested successfully for ${revisionModalRequest.projectName}.`);
+    try {
+      await revisionsApi.create({
+        project: revisionModalRequest.projectName, revNumber: newRevNumber,
+        designer: revisionModalRequest.assignedDesigner || 'Unassigned', requestedBy: 'Design Head',
+        requestId: revisionModalRequest.id,
+        dueDate: new Date(Date.now() + 2*24*60*60*1000).toISOString().split('T')[0],
+        status: 'Pending', comments: revisionModalComments,
+        oldVersion: 'Drawing_Current.dwg', newVersion: 'Awaiting Submittal',
+        date: new Date().toISOString().split('T')[0],
+      });
+      await requestsApi.setStatus(revisionModalRequest.id, 'In Progress', `Revision Requested (${newRevNumber}): ${revisionModalComments}`);
+      await loadData();
+      setIsRevisionModalOpen(false);
+      setRevisionModalRequest(null);
+      setRevisionModalComments('');
+      alert(`Success: Revision requested successfully for ${revisionModalRequest.projectName}.`);
+    } catch (err) { alert(err.message || 'Could not request revision.'); }
   };
 
-  const handleAddComment = (e) => {
+  const handleAddComment = async (e) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
-
-    const newCommentObj = {
-      sender: 'Design Head',
-      role: 'Manager',
-      text: newComment,
-      time: new Date().toISOString().replace('T', ' ').substring(0, 16)
-    };
-
-    const updatedRequests = requests.map(r => {
-      if (r.id === selectedRequest.id) {
-        return {
-          ...r,
-          comments: [...r.comments, newCommentObj]
-        };
-      }
-      return r;
-    });
-
-    setRequests(updatedRequests);
-    setProjectsList(updatedRequests.filter(r => r.status !== 'New'));
-    setSelectedRequest(updatedRequests.find(r => r.id === selectedRequest.id));
-    setNewComment('');
+    if (!newComment.trim() || !selectedRequest) return;
+    try {
+      const updated = await requestsApi.addComment(selectedRequest.id, { sender: 'Design Head', role: 'Manager', text: newComment });
+      setNewComment('');
+      setSelectedRequest(updated);
+      setRequests(prev => prev.map(r => r.id === updated.id ? updated : r));
+    } catch (err) { alert(err.message || 'Could not add comment.'); }
   };
 
   const resetFilters = () => {
@@ -1413,6 +609,128 @@ function App() {
     setFilterDesigner('All');
     setFilterSalesManager('All');
     setFilterDateRange('All');
+  };
+
+  // ─────────── Backend data loading ───────────
+  const [dataLoading, setDataLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
+
+  const loadData = React.useCallback(async () => {
+    setDataLoading(true); setLoadError('');
+    try {
+      const [reqs, dess, acts, boqs, draws, docs, revs, notifs] = await Promise.all([
+        requestsApi.list(), designersApi.list(), activitiesApi.list(), boqsApi.list(),
+        drawingsApi.list(), documentsApi.list(), revisionsApi.list(), notificationsApi.list('head'),
+      ]);
+      setRequests(reqs); setProjectsList(reqs.filter(r => r.status !== 'New'));
+      setDesigners(dess); setActivities(acts); setBoqList(boqs);
+      setDrawingsList(draws); setDocumentsList(docs); setRevisionsList(revs);
+      setNotifications(notifs.map(n => ({ ...n, id: n._id || n.id })));
+      setSelectedRequest(prev => prev ? (reqs.find(r => r.id === prev.id) || prev) : prev);
+    } catch (e) { setLoadError(e.message || 'Could not load data.'); }
+    finally { setDataLoading(false); }
+  }, []);
+
+  // Restore a saved session on refresh and load data from the backend.
+  useEffect(() => {
+    if (isAuthenticated()) {
+      const u = getUser();
+      setIsLoggedIn(true);
+      if (u && u.role === 'design_team') setLoginRole('Design Team');
+      if (u) { setSettingsFullName(u.name || ''); setSettingsEmail(u.email || ''); if (u.settings) { setSettingsRole(u.settings.systemRole || ''); setSettingsEmailAlerts(u.settings.emailAlerts !== false); setSettingsDesktopNotifications(u.settings.desktopNotifications !== false); if (u.settings.themeMode) setSettingsThemeMode(u.settings.themeMode); } }
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [loginError, setLoginError] = useState('');
+  const [loginBusy, setLoginBusy] = useState(false);
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError(''); setLoginBusy(true);
+    try {
+      const { user } = await authApi.login(loginEmail, loginPassword);
+      setIsLoggedIn(true);
+      setLoginRole(user && user.role === 'design_team' ? 'Design Team' : 'Design Head');
+      if (user) { setSettingsFullName(user.name || ''); setSettingsEmail(user.email || ''); }
+      await loadData();
+    } catch (err) { setLoginError(err.message || 'Login failed. Check your email and password.'); }
+    finally { setLoginBusy(false); }
+  };
+  const handleSaveSettings = async () => {
+    try {
+      await authApi.updateMe({ name: settingsFullName, settings: { systemRole: settingsRole, emailAlerts: settingsEmailAlerts, desktopNotifications: settingsDesktopNotifications, themeMode: settingsThemeMode } });
+      alert('Configuration saved successfully!');
+    } catch (err) { alert(err.message || 'Could not save settings.'); }
+  };
+
+  const fieldStyle = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '0.85rem', marginTop: '4px', fontFamily: 'inherit' };
+  const labelStyle = { fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' };
+
+  const [isNewReqOpen, setIsNewReqOpen] = useState(false);
+  const [creatingReq, setCreatingReq] = useState(false);
+  const blankReq = () => ({ customerName: '', projectName: '', projectType: 'PEB', service: '', requirement: '2D + 3D', priority: 'Medium', requestedBy: '', leadId: '', dueDate: '', location: '', budget: '', timeline: '' });
+  const [newReq, setNewReq] = useState(blankReq());
+  const setNR = (k, v) => setNewReq(prev => ({ ...prev, [k]: v }));
+  const handleCreateRequest = async (e) => {
+    e.preventDefault();
+    if (!newReq.projectName.trim() || !newReq.customerName.trim()) { alert('Enter the customer and project name.'); return; }
+    setCreatingReq(true);
+    try {
+      await requestsApi.create({ ...newReq, assignedDesigner: 'Unassigned', status: 'New', deliverables: [],
+        history: [{ title: 'Request created', time: new Date().toISOString().slice(0, 16).replace('T', ' '), desc: 'Created in Design CRM' }] });
+      setIsNewReqOpen(false); setNewReq(blankReq()); await loadData();
+    } catch (err) { alert(err.message || 'Could not create request.'); }
+    finally { setCreatingReq(false); }
+  };
+
+  const [isAddDesignerOpen, setIsAddDesignerOpen] = useState(false);
+  const [creatingDesigner, setCreatingDesigner] = useState(false);
+  const [newDesigner, setNewDesigner] = useState({ name: '', role: '', experience: '', availability: 'Full-time' });
+  const setND = (k, v) => setNewDesigner(prev => ({ ...prev, [k]: v }));
+  const handleCreateDesigner = async (e) => {
+    e.preventDefault();
+    if (!newDesigner.name.trim()) { alert('Enter the designer name.'); return; }
+    setCreatingDesigner(true);
+    try {
+      await designersApi.create({ ...newDesigner, status: 'Available', workload: 0, currentTasks: 0, availableCapacity: '40 hrs' });
+      setIsAddDesignerOpen(false); setNewDesigner({ name: '', role: '', experience: '', availability: 'Full-time' }); await loadData();
+    } catch (err) { alert(err.message || 'Could not add designer.'); }
+    finally { setCreatingDesigner(false); }
+  };
+
+  const [isDocUploadOpen, setIsDocUploadOpen] = useState(false);
+  const [docForm, setDocForm] = useState({ category: '2D Requirements', project: '', version: 'V1' });
+  const [docFile, setDocFile] = useState(null);
+  const [docUploading, setDocUploading] = useState(false);
+  const handleUploadDocument = async (e) => {
+    e.preventDefault();
+    if (!docFile) { alert('Choose a file to upload.'); return; }
+    setDocUploading(true);
+    try {
+      const up = await filesApi.upload(docFile, { entity: 'document' });
+      await documentsApi.create({ name: docFile.name, category: docForm.category, project: docForm.project, uploadedBy: settingsFullName || 'Design Head', version: docForm.version, date: new Date().toISOString().split('T')[0], fileId: up.fileId });
+      setIsDocUploadOpen(false); setDocFile(null); setDocForm({ category: '2D Requirements', project: '', version: 'V1' });
+      const docs = await documentsApi.list(); setDocumentsList(docs);
+    } catch (err) { alert(err.message || 'Upload failed.'); }
+    finally { setDocUploading(false); }
+  };
+
+  const [isDwgUploadOpen, setIsDwgUploadOpen] = useState(false);
+  const [dwgForm, setDwgForm] = useState({ folder: '2D Drawings', project: '', version: 'V1', designer: '' });
+  const [dwgFile, setDwgFile] = useState(null);
+  const [dwgUploading, setDwgUploading] = useState(false);
+  const handleUploadDrawing = async (e) => {
+    e.preventDefault();
+    if (!dwgFile) { alert('Choose a file to upload.'); return; }
+    setDwgUploading(true);
+    try {
+      const up = await filesApi.upload(dwgFile, { entity: 'drawing' });
+      await drawingsApi.create({ name: dwgFile.name, folder: dwgForm.folder, project: dwgForm.project, version: dwgForm.version, designer: dwgForm.designer, date: new Date().toISOString().split('T')[0], fileId: up.fileId });
+      setIsDwgUploadOpen(false); setDwgFile(null); setDwgForm({ folder: '2D Drawings', project: '', version: 'V1', designer: '' });
+      const draws = await drawingsApi.list(); setDrawingsList(draws);
+    } catch (err) { alert(err.message || 'Upload failed.'); }
+    finally { setDwgUploading(false); }
   };
 
   // Filtered Requests Logic
@@ -1496,26 +814,10 @@ function App() {
           }}>
             {/* Header: Logo & Title */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                <div style={{
-                  width: '40px', height: '40px',
-                  borderRadius: '8px',
-                  backgroundColor: '#1E3A8A',
-                  color: '#FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '1.4rem',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                }}>
-                  T
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.5px' }}>TescoStructures</h2>
-                </div>
+              <div style={{ marginBottom: '10px' }}>
+                <img src="/tescologo-wordmark.png" alt="Tesco Structures" style={{ height: '46px', width: 'auto', display: 'block' }} />
               </div>
-              <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 600, margin: '0 0 24px 0' }}>Steel Design & Estimation Workspace</p>
+              <p style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 500, margin: '0 0 24px 0' }}>Sign in to your account to continue</p>
 
               {/* Role Selection Tabs */}
               <div style={{ display: 'flex', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '2px', backgroundColor: '#F8FAFC', marginBottom: '24px' }}>
@@ -1536,7 +838,8 @@ function App() {
               </div>
 
               {/* Inputs */}
-              <form onSubmit={(e) => { e.preventDefault(); setIsLoggedIn(true); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {loginError && <div style={{ color: '#DC2626', fontSize: '0.8rem', fontWeight: 600, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '6px', padding: '8px 10px' }}>{loginError}</div>}
                 <div>
                   <input 
                     type="email" 
@@ -1584,12 +887,6 @@ function App() {
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-4px' }}>
-                  <a href="#forgot" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1E3A8A', textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); alert('Password reset link sent to your registered email!'); }}>
-                    Forget Password?
-                  </a>
-                </div>
-
                 <button 
                   type="submit"
                   style={{
@@ -1614,13 +911,6 @@ function App() {
               </form>
             </div>
 
-            {/* Footer */}
-            <div>
-              <div style={{ borderTop: '1px solid #E2E8F0', margin: '24px 0' }} />
-              <div style={{ textAlign: 'center', fontSize: '0.85rem', color: '#475569' }}>
-                Don't have an account? <a href="#signup" style={{ color: '#2563EB', fontWeight: 700, textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); alert('Self-service signup is restricted. Please contact system admin.'); }}>Sign Up</a>
-              </div>
-            </div>
 
           </div>
 
@@ -1645,7 +935,7 @@ function App() {
         setRequests={setRequests}
         designers={designers}
         setDesigners={setDesigners}
-        onLogout={() => setIsLoggedIn(false)}
+        onLogout={() => { authApi.logout(); setIsLoggedIn(false); }}
         loginEmail={loginEmail}
       />
     );
@@ -1656,7 +946,7 @@ function App() {
       {/* LEFT SIDEBAR */}
       <aside className="sidebar" style={{ width: '260px', backgroundColor: '#34328C', color: '#FFFFFF', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         <div className="sidebar-logo" style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: '#FFFFFF', color: '#34328C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.25rem' }}>T</div>
+          <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/tescologo.png" alt="Tesco Structures" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></div>
           <div>
             <div style={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '0.5px' }}>Tesco Structures</div>
             <div style={{ fontSize: '0.7rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }}>Design Management</div>
@@ -1670,9 +960,11 @@ function App() {
             { id: 'Design Team', label: 'Design Team', icon: <Users size={18} /> },
             { id: 'Review Queue', label: 'Review Queue', icon: <CheckSquare size={18} /> },
             { id: 'Documents', label: 'Documents', icon: <FileText size={18} /> },
+            { id: 'Drawings Library', label: 'Drawings Library', icon: <FolderOpen size={18} /> },
             { id: 'Calendar', label: 'Calendar', icon: <CalendarRange size={18} /> },
             { id: 'Notifications', label: 'Notifications', icon: <Bell size={18} /> },
             { id: 'Settings', label: 'Settings', icon: <Settings size={18} /> },
+            { id: 'Team Accounts', label: 'Team Accounts', icon: <UserPlus size={18} /> },
             { id: 'Tesco ERM', label: 'Tesco ERM', icon: <Database size={18} /> }
           ].map(item => (
             <li key={item.id}>
@@ -1728,7 +1020,7 @@ function App() {
               </div>
             </div>
             <button
-              onClick={() => { setIsLoggedIn(false); setCurrentTab('Dashboard'); }}
+              onClick={() => { authApi.logout(); setIsLoggedIn(false); setCurrentTab('Dashboard'); }}
               title="Logout"
               style={{
                 background: 'none',
@@ -1799,7 +1091,7 @@ function App() {
                   <button
                     className="btn-reset"
                     style={{ fontSize: '0.75rem', padding: '4px 8px', cursor: 'pointer' }}
-                    onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}
+                    onClick={() => { notificationsApi.markAllRead('head'); setNotifications(notifications.map(n => ({ ...n, read: true }))); }}
                   >
                     Mark all read
                   </button>
@@ -1928,8 +1220,8 @@ function App() {
                         </span>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Due: {r.dueDate}</span>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button className="badge badge-completed" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); updateRequestStatus('Completed', `Approved drawings for ${r.id}`, r); }}>Assign task</button>
-                          <button className="badge badge-urgent" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); updateRequestStatus('In Progress', `Rejected submittal for ${r.id}`, r); }}>Reject</button>
+                          <button className="badge badge-completed" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); handleApprove(r); }}>Approve</button>
+                          <button className="badge badge-urgent" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); handleReject(r); }}>Reject</button>
                         </div>
                       </div>
                     </div>
@@ -2026,27 +1318,6 @@ function App() {
                 </div>
               </div>
 
-              {/* ROW 5: DEADLINES */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-                <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E293B', marginBottom: '16px' }}>Drawing Deadline Schedule</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {[
-                      { period: 'Overdue Projects', project: 'Commercial Canopy', due: 'Due 2 days ago', badgeColor: 'var(--danger)' },
-                      { period: 'Due Today', project: 'PEB Warehouse', due: 'Due at 05:00 PM', badgeColor: 'var(--warning)' },
-                      { period: 'Due Tomorrow', project: 'Residential Roof', due: 'Due by 12:00 PM', badgeColor: 'var(--primary)' }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifySelf: 'space-between', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '8px', borderLeft: `4px solid ${item.badgeColor}`, backgroundColor: 'var(--bg-secondary)' }}>
-                        <div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: item.badgeColor }}>{item.period}</div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1E293B', marginTop: '2px' }}>{item.project}</div>
-                        </div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.due}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
 
               {/* ROW 6: DEPARTMENT ACTIVITIES */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
@@ -2097,6 +1368,39 @@ function App() {
 
 
 
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600 }} onClick={() => setIsNewReqOpen(true)}><UserPlus size={16} /> New Request</button>
+              </div>
+
+              {isNewReqOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }} onClick={() => setIsNewReqOpen(false)}>
+                  <form onClick={(e) => e.stopPropagation()} onSubmit={handleCreateRequest} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '24px', width: '620px', maxWidth: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>New Design Request</h3>
+                      <button type="button" onClick={() => setIsNewReqOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <label style={labelStyle}>Customer Name *<input style={fieldStyle} value={newReq.customerName} onChange={(e) => setNR('customerName', e.target.value)} /></label>
+                      <label style={labelStyle}>Project Name *<input style={fieldStyle} value={newReq.projectName} onChange={(e) => setNR('projectName', e.target.value)} /></label>
+                      <label style={labelStyle}>Project Type<select style={fieldStyle} value={newReq.projectType} onChange={(e) => setNR('projectType', e.target.value)}>{['PEB', 'Mangalore Tile Roofing', 'Glass Roofing', 'Other'].map(o => <option key={o}>{o}</option>)}</select></label>
+                      <label style={labelStyle}>Design Type<select style={fieldStyle} value={newReq.requirement} onChange={(e) => setNR('requirement', e.target.value)}>{['2D + 3D', '2D Drawing', '3D Render', 'BOQ', '2D Layout + 3D Model', '2D Layouts + BOQ'].map(o => <option key={o}>{o}</option>)}</select></label>
+                      <label style={labelStyle}>Service / Scope<input style={fieldStyle} value={newReq.service} onChange={(e) => setNR('service', e.target.value)} /></label>
+                      <label style={labelStyle}>Priority<select style={fieldStyle} value={newReq.priority} onChange={(e) => setNR('priority', e.target.value)}>{['Urgent', 'High', 'Medium', 'Normal', 'Low'].map(o => <option key={o}>{o}</option>)}</select></label>
+                      <label style={labelStyle}>Requested By<input style={fieldStyle} placeholder="Name (Role)" value={newReq.requestedBy} onChange={(e) => setNR('requestedBy', e.target.value)} /></label>
+                      <label style={labelStyle}>Lead ID<input style={fieldStyle} placeholder="LD-1001" value={newReq.leadId} onChange={(e) => setNR('leadId', e.target.value)} /></label>
+                      <label style={labelStyle}>Due Date<input type="date" style={fieldStyle} value={newReq.dueDate} onChange={(e) => setNR('dueDate', e.target.value)} /></label>
+                      <label style={labelStyle}>Location<input style={fieldStyle} value={newReq.location} onChange={(e) => setNR('location', e.target.value)} /></label>
+                      <label style={labelStyle}>Budget<input style={fieldStyle} placeholder="$48,000" value={newReq.budget} onChange={(e) => setNR('budget', e.target.value)} /></label>
+                      <label style={labelStyle}>Timeline<input style={fieldStyle} placeholder="3 Weeks" value={newReq.timeline} onChange={(e) => setNR('timeline', e.target.value)} /></label>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+                      <button type="button" className="btn-secondary" onClick={() => setIsNewReqOpen(false)}>Cancel</button>
+                      <button type="submit" className="btn-primary" disabled={creatingReq}>{creatingReq ? 'Creating…' : 'Create Request'}</button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
               {/* Large searchable table */}
               <div className="table-card" style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
                 <div className="table-wrapper">
@@ -2144,7 +1448,7 @@ function App() {
                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                               <button className="btn-primary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleOpenDrawer(r); }}>View</button>
                               <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleOpenAssignModal(r); }}>Assign</button>
-                              <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--success-light)', color: 'var(--success)' }} onClick={(e) => { e.stopPropagation(); setSelectedRequest(r); updateRequestStatus('Completed', 'Approve drawings', r); }}>Approve</button>
+                              <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--success-light)', color: 'var(--success)' }} onClick={(e) => { e.stopPropagation(); handleApprove(r); }}>Approve</button>
                               <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--warning-light)', color: 'var(--warning)' }} onClick={(e) => { e.stopPropagation(); handleOpenRevisionModal(r); }}>Revision</button>
                             </div>
                           </td>
@@ -2553,6 +1857,29 @@ function App() {
           {/* TAB 5: DESIGN TEAM */}
           {currentTab === 'Design Team' && (
             <div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600 }} onClick={() => setIsAddDesignerOpen(true)}><UserPlus size={16} /> Add Designer</button>
+              </div>
+              {isAddDesignerOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }} onClick={() => setIsAddDesignerOpen(false)}>
+                  <form onClick={(e) => e.stopPropagation()} onSubmit={handleCreateDesigner} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '24px', width: '460px', maxWidth: '100%', boxShadow: 'var(--shadow-lg)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Add Team Member</h3>
+                      <button type="button" onClick={() => setIsAddDesignerOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <label style={{ ...labelStyle, gridColumn: '1 / -1' }}>Full Name *<input style={fieldStyle} value={newDesigner.name} onChange={(e) => setND('name', e.target.value)} /></label>
+                      <label style={{ ...labelStyle, gridColumn: '1 / -1' }}>Role / Title<input style={fieldStyle} placeholder="PEB Specialist" value={newDesigner.role} onChange={(e) => setND('role', e.target.value)} /></label>
+                      <label style={labelStyle}>Experience<input style={fieldStyle} placeholder="5 Years" value={newDesigner.experience} onChange={(e) => setND('experience', e.target.value)} /></label>
+                      <label style={labelStyle}>Availability<select style={fieldStyle} value={newDesigner.availability} onChange={(e) => setND('availability', e.target.value)}>{['Full-time', 'Part-time'].map(o => <option key={o}>{o}</option>)}</select></label>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+                      <button type="button" className="btn-secondary" onClick={() => setIsAddDesignerOpen(false)}>Cancel</button>
+                      <button type="submit" className="btn-primary" disabled={creatingDesigner}>{creatingDesigner ? 'Adding…' : 'Add Designer'}</button>
+                    </div>
+                  </form>
+                </div>
+              )}
               {/* Top summary cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
                 {/* Card 1: Pending Assignment */}
@@ -2775,7 +2102,7 @@ function App() {
                                 <a 
                                   key={idx} 
                                   href="#" 
-                                  onClick={(e) => { e.preventDefault(); alert(`Downloading: ${a.name}`); }}
+                                  onClick={(e) => { e.preventDefault(); a.fileId ? filesApi.download(a.fileId, a.name) : alert('No file attached.'); }}
                                   style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'none' }}
                                 >
                                   {a.name} ({a.size})
@@ -2791,19 +2118,23 @@ function App() {
                               <button 
                                 className="btn-secondary" 
                                 style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px', backgroundColor: 'var(--success-light)', color: 'var(--success)', borderColor: 'var(--success-light)' }} 
-                                onClick={() => {
-                                  setSelectedRequest(r);
-                                  updateRequestStatus('Design Ready', 'Approve drawings', r);
-                                }}
+                                onClick={() => handleApprove(r)}
                               >
-                                Approve Drawings
+                                Approve
                               </button>
                               <button 
                                 className="btn-secondary" 
                                 style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', borderColor: 'var(--warning-light)' }} 
-                                onClick={() => handleOpenRevisionModal(r)}
+                                onClick={() => handleRequestChanges(r)}
                               >
-                                Revision Request
+                                Request Changes
+                              </button>
+                              <button 
+                                className="btn-secondary" 
+                                style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px', backgroundColor: '#FEE2E2', color: '#991B1B', borderColor: '#FEE2E2' }} 
+                                onClick={() => handleReject(r)}
+                              >
+                                Reject
                               </button>
                             </div>
                           </td>
@@ -2822,6 +2153,8 @@ function App() {
           )}
 
           {/* TAB 8: DRAWINGS LIBRARY */}
+          {currentTab === 'Team Accounts' && <TeamAccounts />}
+
           {currentTab === 'Drawings Library' && (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '24px' }}>
@@ -2855,6 +2188,30 @@ function App() {
 
                 {/* Drawing list cards */}
                 <div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                    <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600 }} onClick={() => setIsDwgUploadOpen(true)}><Paperclip size={16} /> Upload Drawing</button>
+                  </div>
+                  {isDwgUploadOpen && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }} onClick={() => setIsDwgUploadOpen(false)}>
+                      <form onClick={(e) => e.stopPropagation()} onSubmit={handleUploadDrawing} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '24px', width: '480px', maxWidth: '100%', boxShadow: 'var(--shadow-lg)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Upload Drawing</h3>
+                          <button type="button" onClick={() => setIsDwgUploadOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        <label style={labelStyle}>File *<input type="file" style={fieldStyle} onChange={(e) => setDwgFile(e.target.files?.[0] || null)} /></label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                          <label style={labelStyle}>Folder<select style={fieldStyle} value={dwgForm.folder} onChange={(e) => setDwgForm(f => ({ ...f, folder: e.target.value }))}>{['2D Drawings', '3D Drawings', 'BOQ'].map(o => <option key={o}>{o}</option>)}</select></label>
+                          <label style={labelStyle}>Version<input style={fieldStyle} value={dwgForm.version} onChange={(e) => setDwgForm(f => ({ ...f, version: e.target.value }))} /></label>
+                          <label style={labelStyle}>Project<input style={fieldStyle} value={dwgForm.project} onChange={(e) => setDwgForm(f => ({ ...f, project: e.target.value }))} /></label>
+                          <label style={labelStyle}>Designer<input style={fieldStyle} value={dwgForm.designer} onChange={(e) => setDwgForm(f => ({ ...f, designer: e.target.value }))} /></label>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+                          <button type="button" className="btn-secondary" onClick={() => setIsDwgUploadOpen(false)}>Cancel</button>
+                          <button type="submit" className="btn-primary" disabled={dwgUploading}>{dwgUploading ? 'Uploading…' : 'Upload'}</button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
                     {drawingsList.filter(d => selectedDrawingFolder === 'All' || d.folder === selectedDrawingFolder).map(dwg => (
                       <div key={dwg.id} style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '150px', minWidth: 0 }}>
@@ -2865,7 +2222,7 @@ function App() {
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Designer: {dwg.designer}</div>
                         </div>
                         <div style={{ display: 'flex', gap: '6px', marginTop: '12px' }}>
-                          <button className="btn-secondary" style={{ flex: 1, padding: '4px', fontSize: '0.75rem' }} onClick={() => alert(`Downloading ${dwg.name}`)}>Download</button>
+                          <button className="btn-secondary" style={{ flex: 1, padding: '4px', fontSize: '0.75rem' }} onClick={() => dwg.fileId ? filesApi.download(dwg.fileId, dwg.name) : alert('No file attached to this drawing.')}>Download</button>
                           <button className="btn-secondary" style={{ padding: '4px', fontSize: '0.75rem' }} onClick={() => alert(`Sharing file ${dwg.name}`)}><Share2 size={12} /></button>
                         </div>
                       </div>
@@ -2915,7 +2272,28 @@ function App() {
                     <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>Project Documents Repository</h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Manage structural drawings, designs, specifications and reference attachments</p>
                   </div>
+                  <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600 }} onClick={() => setIsDocUploadOpen(true)}><Paperclip size={16} /> Upload Document</button>
                 </div>
+                {isDocUploadOpen && (
+                  <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }} onClick={() => setIsDocUploadOpen(false)}>
+                    <form onClick={(e) => e.stopPropagation()} onSubmit={handleUploadDocument} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '24px', width: '480px', maxWidth: '100%', boxShadow: 'var(--shadow-lg)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Upload Document</h3>
+                        <button type="button" onClick={() => setIsDocUploadOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                      </div>
+                      <label style={labelStyle}>File *<input type="file" style={fieldStyle} onChange={(e) => setDocFile(e.target.files?.[0] || null)} /></label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                        <label style={labelStyle}>Category<select style={fieldStyle} value={docForm.category} onChange={(e) => setDocForm(f => ({ ...f, category: e.target.value }))}>{['2D Requirements', '3D Briefs', 'BOQ Files', 'Site References'].map(o => <option key={o}>{o}</option>)}</select></label>
+                        <label style={labelStyle}>Version<input style={fieldStyle} value={docForm.version} onChange={(e) => setDocForm(f => ({ ...f, version: e.target.value }))} /></label>
+                        <label style={{ ...labelStyle, gridColumn: '1 / -1' }}>Project<input style={fieldStyle} value={docForm.project} onChange={(e) => setDocForm(f => ({ ...f, project: e.target.value }))} /></label>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+                        <button type="button" className="btn-secondary" onClick={() => setIsDocUploadOpen(false)}>Cancel</button>
+                        <button type="submit" className="btn-primary" disabled={docUploading}>{docUploading ? 'Uploading…' : 'Upload'}</button>
+                      </div>
+                    </form>
+                  </div>
+                )}
                 <table className="crm-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#F8FAFC', textAlign: 'left' }}>
@@ -3005,7 +2383,7 @@ function App() {
                             <button 
                               className="btn-secondary" 
                               style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }} 
-                              onClick={() => alert(`Downloading document: ${doc.name}`)}
+                              onClick={() => doc.fileId ? filesApi.download(doc.fileId, doc.name) : alert('No file attached to this document.')}
                             >
                               <Download size={12} /> Download
                             </button>
@@ -3137,7 +2515,7 @@ function App() {
             <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '20px' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Notification History</h3>
-                <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}>Mark All Read</button>
+                <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => { notificationsApi.markAllRead('head'); setNotifications(notifications.map(n => ({ ...n, read: true }))); }}>Mark All Read</button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -3314,7 +2692,7 @@ function App() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
                 <button 
                   className="btn-primary" 
-                  onClick={() => alert('Configuration saved successfully!')} 
+                  onClick={handleSaveSettings} 
                   style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '0.85rem', fontWeight: 600 }}
                 >
                   <Save size={16} />
@@ -3985,7 +3363,7 @@ function App() {
                       </div>
                       <a
                         href="#"
-                        onClick={(e) => { e.preventDefault(); alert(`Downloading file: ${file.name}`); }}
+                        onClick={(e) => { e.preventDefault(); file.fileId ? filesApi.download(file.fileId, file.name) : alert('No file attached.'); }}
                         style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }}
                       >
                         Download
@@ -4117,7 +3495,7 @@ function App() {
                 type="button" 
                 className="btn-primary" 
                 style={{ backgroundColor: 'var(--success)', flex: 1, padding: '10px' }} 
-                onClick={() => updateRequestStatus('Approved', 'Approved drawings')}
+                onClick={() => handleApprove(selectedRequest)}
               >
                 Approve Design
               </button>

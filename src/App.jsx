@@ -27,6 +27,8 @@ import {
   TrendingUp,
   MoreVertical,
   CheckCircle2,
+  AtSign,
+  ShieldCheck,
   AlertTriangle,
   Send,
   UserPlus,
@@ -58,6 +60,16 @@ import {
 // Seed data removed — all data now loads from the backend API.
 
 const getLeadId = (r) => (r && r.leadId && r.leadId !== 'N/A') ? r.leadId : 'N/A';
+
+// Format a real timestamp as "31 Oct 2026, 1:17 PM" (falls back to any stored label).
+const fmtDateTime = (iso, fallback = '') => {
+  if (!iso) return fallback;
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return fallback;
+    return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return fallback; }
+};
 
 function App() {
   const [currentTab, setCurrentTab] = useState('Dashboard');
@@ -121,8 +133,9 @@ function App() {
   // Login states
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginRole, setLoginRole] = useState('Design Head'); // 'Design Head' or 'Design Team'
-  const [loginEmail, setLoginEmail] = useState('head@tesco.com');
-  const [loginPassword, setLoginPassword] = useState('password123');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   // Comment Form state
@@ -532,6 +545,10 @@ function App() {
     try {
       await requestsApi.setDesigner(requestId, value ? { assigneeUserId: value } : { designerName: 'Unassigned' });
       await loadData();
+      if (value) {
+        const m = teamMembers.find(x => x._id === value);
+        notify(`Success: ${requestId} successfully assigned to ${m ? m.name : 'the team member'}.`);
+      } else { notify(`${requestId} set to Unassigned.`); }
     } catch (err) { notify(err.message || 'Could not update assignment.'); }
   };
 
@@ -816,151 +833,109 @@ function App() {
   };
 
   if (!isLoggedIn) {
+    const ACCENT = '#4F46E5', ACCENT_DARK = '#4338CA', ACCENT_SHADOW = 'rgba(79,70,229,0.25)';
+    const HERO_FROM = '#EEF2FF', HERO_TO = '#E0E7FF', HERO_BORDER = 'rgba(199,210,254,0.5)';
+    const dLabel = { display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' };
+    const dInput = { width: '100%', padding: '0.75rem 2.5rem 0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.875rem', color: '#0F172A', boxSizing: 'border-box', transition: 'border-color 0.2s' };
+    const dFocus = (e) => (e.target.style.borderColor = ACCENT);
+    const dBlur = (e) => (e.target.style.borderColor = '#CBD5E1');
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#F1F5F9',
-        fontFamily: 'var(--font-sans)',
-        padding: '20px',
-        boxSizing: 'border-box'
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          width: '100%',
-          maxWidth: '960px',
-          height: '600px',
-          backgroundColor: '#FFFFFF',
-          borderRadius: '16px',
-          borderLeft: '4px solid #2563EB',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08)',
-          overflow: 'hidden',
-          boxSizing: 'border-box'
-        }}>
-          
-          {/* Left Column: Form */}
-          <div style={{
-            padding: '48px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            boxSizing: 'border-box',
-            height: '100%'
-          }}>
-            {/* Header: Logo & Title */}
-            <div>
-              <div style={{ marginBottom: '10px' }}>
-                <img src="/tescologo-wordmark.png" alt="Tesco Structures" style={{ height: '46px', width: 'auto', display: 'block' }} />
+      <div className="login-page-wrapper" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC', fontFamily: 'var(--font-sans)' }}>
+        <style>{`
+          @media (min-width: 1024px) {
+            .login-page-wrapper { height: 100vh !important; min-height: 100vh !important; overflow: hidden !important; }
+            .login-container { padding: 1rem 1.5rem !important; max-height: calc(100vh - 60px) !important; }
+            .login-grid { gap: 2.5rem !important; }
+            .left-hero-card { padding: 1.75rem 2.25rem !important; gap: 1.15rem !important; }
+            .hero-title { font-size: 2rem !important; }
+            .hero-image-container { aspect-ratio: 1.45 !important; max-height: 280px !important; }
+            .right-login-card { padding: 2rem !important; }
+          }
+        `}</style>
+
+        <div className="login-container" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+          <div className="login-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem', width: '100%', alignItems: 'center' }}>
+
+            {/* Left hero */}
+            <div className="left-hero-card" style={{ background: `linear-gradient(135deg, ${HERO_FROM} 0%, ${HERO_TO} 100%)`, border: `1px solid ${HERO_BORDER}`, borderRadius: '1.5rem', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 4px 20px -2px rgba(199,210,254,0.35)' }}>
+              <img src="/tescologo-wordmark.png" alt="Tesco Structures" style={{ height: 44, width: 'auto', maxWidth: '250px', objectFit: 'contain', display: 'block', alignSelf: 'flex-start', marginLeft: -6 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <h1 className="hero-title" style={{ fontSize: '2.25rem', fontWeight: 800, color: '#1E1B4B', lineHeight: 1.2, letterSpacing: '-1px', margin: 0 }}>Design, Delivered<br />with Precision</h1>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.6, margin: 0 }}>Receive design requests, assign tasks to your team, submit drawings and track approvals &mdash; one clear workspace from request to released design.</p>
               </div>
-              <p style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 500, margin: '0 0 24px 0' }}>Sign in to your account to continue</p>
-
-              {/* Role Selection Tabs */}
-              <div style={{ display: 'flex', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '2px', backgroundColor: '#F8FAFC', marginBottom: '24px' }}>
-                <button 
-                  type="button" 
-                  onClick={() => { setLoginRole('Design Head'); setLoginEmail('head@tesco.com'); }}
-                  style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', background: loginRole === 'Design Head' ? '#FFFFFF' : 'transparent', color: loginRole === 'Design Head' ? '#1E3A8A' : 'var(--text-secondary)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', boxShadow: loginRole === 'Design Head' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s' }}
-                >
-                  Design Head
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => { setLoginRole('Design Team'); setLoginEmail('team@tesco.com'); }}
-                  style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', background: loginRole === 'Design Team' ? '#FFFFFF' : 'transparent', color: loginRole === 'Design Team' ? '#1E3A8A' : 'var(--text-secondary)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', boxShadow: loginRole === 'Design Team' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s' }}
-                >
-                  Design Team
-                </button>
+              <div className="hero-image-container" style={{ position: 'relative', borderRadius: '1rem', overflow: 'hidden', boxShadow: '0 10px 30px -5px rgba(30,27,75,0.15)', border: '1px solid rgba(255,255,255,0.8)', aspectRatio: '1.45', backgroundColor: '#1E1B4B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ position: 'absolute', color: 'rgba(255,255,255,0.55)', fontSize: '0.85rem', fontWeight: 600 }}>Design Workspace</span>
+                <img src="/structural_background.png" alt="Design workspace preview" onError={(e) => { e.currentTarget.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'relative' }} />
               </div>
-
-              {/* Inputs */}
-              <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {loginError && <div style={{ color: '#DC2626', fontSize: '0.8rem', fontWeight: 600, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '6px', padding: '8px 10px' }}>{loginError}</div>}
-                <div>
-                  <input 
-                    type="email" 
-                    placeholder="Email"
-                    required
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      borderRadius: '8px',
-                      border: '1px solid #CBD5E1',
-                      fontSize: '0.9rem',
-                      color: '#1E293B',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <div style={{ position: 'relative' }}>
-                  <input 
-                    type={showLoginPassword ? 'text' : 'password'} 
-                    placeholder="Password"
-                    required
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '12px 42px 12px 16px',
-                      borderRadius: '8px',
-                      border: '1px solid #CBD5E1',
-                      fontSize: '0.9rem',
-                      color: '#1E293B',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', padding: 0 }}
-                  >
-                    {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-
-                <button 
-                  type="submit"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: '#223C8A',
-                    color: '#FFFFFF',
-                    fontWeight: 700,
-                    fontSize: '0.95rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 6px rgba(34, 60, 138, 0.25)',
-                    transition: 'all 0.2s',
-                    marginTop: '8px'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1C3171'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#223C8A'; }}
-                >
-                  Login
-                </button>
-              </form>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.25rem' }}>
+                {['Design Requests', 'Task Assignment', 'Drawing Submittals', 'Head Approvals', 'Revision Tracking'].map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', fontWeight: 600, color: '#1E1B4B' }}>
+                    <CheckCircle2 size={16} color={ACCENT} fill={HERO_TO} /><span>{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-
+            {/* Right login card */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+              <div className="right-login-card" style={{ width: '100%', maxWidth: '460px', backgroundColor: '#FFFFFF', borderRadius: '1.25rem', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 10px 15px -3px rgba(0,0,0,0.03)', border: '1px solid #E2E8F0' }}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', margin: '0 0 0.5rem' }}>Welcome Back &#128075;</h2>
+                  <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0 }}>Sign in to continue to the Design portal.</p>
+                </div>
+                {loginError && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', padding: '0.7rem 0.9rem', borderRadius: '0.5rem', fontSize: '0.82rem', marginBottom: '1rem' }}>{loginError}</div>}
+                <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div>
+                    <label style={dLabel}>Role</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <select value={loginRole} onChange={(e) => setLoginRole(e.target.value)} style={{ width: '100%', padding: '0.75rem 2.5rem 0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', backgroundColor: '#F1F5F9', fontSize: '0.875rem', fontWeight: 600, color: '#0F172A', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', cursor: 'pointer' }} onFocus={dFocus} onBlur={dBlur}>
+                        <option value="Design Head">Design Head</option>
+                        <option value="Design Team">Design Team</option>
+                      </select>
+                      <ShieldCheck size={16} color={ACCENT} style={{ position: 'absolute', right: 12, pointerEvents: 'none' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={dLabel}>Email / Employee ID</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input required type="text" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="e.g. name@company.com" autoComplete="username" style={dInput} onFocus={dFocus} onBlur={dBlur} />
+                      <AtSign size={16} color="#94A3B8" style={{ position: 'absolute', right: 12, pointerEvents: 'none' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={dLabel}>Password</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input required type={showLoginPassword ? 'text' : 'password'} value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Enter password" autoComplete="current-password" style={dInput} onFocus={dFocus} onBlur={dBlur} />
+                      <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }} aria-label="Toggle password">
+                        {showLoginPassword ? <EyeOff size={16} color="#94A3B8" /> : <Eye size={16} color="#94A3B8" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.8125rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#64748B' }}>
+                      <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} style={{ accentColor: ACCENT }} />
+                      Remember Me
+                    </label>
+                  </div>
+                  <button type="submit" disabled={loginBusy || !loginEmail || !loginPassword} style={{ backgroundColor: ACCENT, color: '#FFFFFF', border: 'none', borderRadius: '0.5rem', padding: '0.875rem', fontWeight: 700, fontSize: '0.875rem', cursor: (loginBusy || !loginEmail || !loginPassword) ? 'not-allowed' : 'pointer', boxShadow: `0 4px 12px ${ACCENT_SHADOW}`, marginTop: '0.25rem', opacity: (loginBusy || !loginEmail || !loginPassword) ? 0.55 : 1, transition: 'background-color 0.2s' }} onMouseEnter={(e) => { if (!(loginBusy || !loginEmail || !loginPassword)) e.currentTarget.style.backgroundColor = ACCENT_DARK; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ACCENT; }}>{loginBusy ? 'Signing in…' : 'Login to Dashboard'}</button>
+                </form>
+                <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: '#94A3B8' }}>
+                  <a href="#privacy" onClick={(e) => e.preventDefault()} style={{ color: '#64748B', textDecoration: 'none', fontWeight: 600 }}>Privacy Policy</a>
+                </p>
+              </div>
+            </div>
           </div>
+        </div>
 
-          {/* Right Column: Image */}
-          <div style={{
-            backgroundImage: `url('/structural_background.png')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            height: '100%',
-            width: '100%'
-          }} />
-
+        <div style={{ borderTop: '1px solid #E2E8F0', padding: '1.5rem', backgroundColor: '#FFFFFF' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1280px', margin: '0 auto', width: '100%', fontSize: '0.75rem', color: '#64748B', flexWrap: 'wrap', gap: '1rem' }}>
+            <span>&copy; {new Date().getFullYear()} Tesco Structures &middot; Design Portal. All rights reserved.</span>
+            <div style={{ display: 'flex', gap: '1.5rem', fontWeight: 500 }}>
+              <a href="#privacy" onClick={(e) => e.preventDefault()} style={{ color: 'inherit', textDecoration: 'none' }}>Privacy Policy</a>
+              <a href="#terms" onClick={(e) => e.preventDefault()} style={{ color: 'inherit', textDecoration: 'none' }}>Terms of Service</a>
+              <a href="#security" onClick={(e) => e.preventDefault()} style={{ color: 'inherit', textDecoration: 'none' }}>Security</a>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -999,9 +974,7 @@ function App() {
             { id: 'Review Queue', label: 'Pending Approvals', icon: <CheckSquare size={18} /> },
             { id: 'Documents', label: 'Documents', icon: <FileText size={18} /> },
             { id: 'Drawings Library', label: 'Drawings Library', icon: <FolderOpen size={18} /> },
-            { id: 'Calendar', label: 'Calendar', icon: <CalendarRange size={18} /> },
             { id: 'Notifications', label: 'Notifications', icon: <Bell size={18} /> },
-            { id: 'Settings', label: 'Settings', icon: <Settings size={18} /> },
             { id: 'Team Accounts', label: 'Team Accounts', icon: <UserPlus size={18} /> }
           ].map(item => (
             <li key={item.id}>
@@ -1013,6 +986,10 @@ function App() {
                   setSelectedBoqId(null);
                   if (item.id === 'Design Team') {
                     setSelectedDesignerName(null);
+                  }
+                  if (item.id === 'Design Requests') {
+                    setFilterStatus('All'); setFilterDesigner('All'); setFilterType('All');
+                    setFilterRequirement('All'); setFilterPriority('All'); setFilterSalesManager('All'); setSearchText('');
                   }
                 }}
                 style={{
@@ -1133,7 +1110,7 @@ function App() {
                     <div key={notif.id} onClick={() => handleOpenNotification(notif)} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', backgroundColor: !notif.read ? '#F8FAFC' : 'transparent', cursor: 'pointer' }}>
                       <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#1E293B' }}>{notif.title}</div>
                       <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{notif.message || notif.desc}</p>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>{notif.time}{notif.category ? ' \u2022 ' + notif.category : ''}{notif.requestId ? ' \u2022 ' + notif.requestId : ''}</span>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>{fmtDateTime(notif.createdAt, notif.time)}{notif.category ? ' \u2022 ' + notif.category : ''}{notif.requestId ? ' \u2022 ' + notif.requestId : ''}</span>
                     </div>
                   ))}
                 </div>
@@ -1368,7 +1345,7 @@ function App() {
                           <p style={{ margin: 0, fontSize: '0.8rem', color: '#1E293B' }}>
                             <strong>{act.user}</strong> {act.action} <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{act.target}</span>
                           </p>
-                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{act.time}</span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{fmtDateTime(act.createdAt, act.time)}</span>
                         </div>
                       </div>
                     ))}
@@ -2560,7 +2537,7 @@ function App() {
                       <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{notif.message || notif.desc}</p>
                       {notif.requestId ? <span style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 600 }}>{notif.requestId} &rarr; open request</span> : null}
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{notif.time}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{fmtDateTime(notif.createdAt, notif.time)}</span>
                   </div>
                 ))}
               </div>

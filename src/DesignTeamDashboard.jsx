@@ -38,6 +38,11 @@ import {
 import { requestsApi, submittalsApi, notificationsApi, filesApi, getUser } from './api/client';
 import { notify } from './notify';
 
+const fmtDateTime = (iso, fallback = '') => {
+  if (!iso) return fallback;
+  try { const d = new Date(iso); if (isNaN(d.getTime())) return fallback; return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return fallback; }
+};
+
 export default function DesignTeamDashboard({
   requests = [],
   setRequests,
@@ -254,6 +259,7 @@ export default function DesignTeamDashboard({
   // Multiple-file "Submit for Approval" state + handler (drawer).
   const [submitFiles, setSubmitFiles] = useState([]);
   const [submitRemarks, setSubmitRemarks] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const detectType = (fileName) => {
     const ext = (String(fileName).split('.').pop() || '').toLowerCase();
     if (ext === 'pdf') return 'PDF';
@@ -266,8 +272,9 @@ export default function DesignTeamDashboard({
   };
   const handleSubmitForApproval = async () => {
     const req = selectedReqForDetail;
-    if (!req) return;
+    if (!req || submitting) return;                          // guard against duplicate submits
     if (submitFiles.length === 0) { notify('Please choose at least one completed design file to submit.'); return; }
+    setSubmitting(true);
     try {
       for (const f of submitFiles) {
         const up = await filesApi.upload(f, { entity: 'submittal', entityId: req.id, uploadedBy: myName });
@@ -283,31 +290,33 @@ export default function DesignTeamDashboard({
       const reqs = await requestsApi.list(); setRequests(reqs);
       setSelectedReqForDetail(reqs.find(r => r.id === req.id) || updated);
       setSubmitFiles([]); setSubmitRemarks('');
-      notify('Submitted for approval. The Design Head has been notified.');
+      notify('Successfully submitted for approval. The Design Head has been notified.');
     } catch (err) { notify(err.message || 'Could not submit for approval.'); }
+    finally { setSubmitting(false); }
   };
 
   // Handle Submitting Design File
   const handleUploadSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedReqForUpload) return;
+    if (e && e.preventDefault) e.preventDefault();
+    if (!selectedReqForUpload || submitting) return;         // guard against duplicate submits
+    if (!selectedFileObj) { notify('Please choose a design file to submit.'); return; }
+    setSubmitting(true);
     try {
-      let fileId = '';
-      if (selectedFileObj) {
-        const up = await filesApi.upload(selectedFileObj, { entity: 'submittal', entityId: selectedReqForUpload.id, uploadedBy: selectedDesignerName });
-        fileId = up.fileId;
-      }
+      const up = await filesApi.upload(selectedFileObj, { entity: 'submittal', entityId: selectedReqForUpload.id, uploadedBy: myName });
       await submittalsApi.create({
         reqId: selectedReqForUpload.id, projectName: selectedReqForUpload.projectName,
-        fileName: uploadFileName || `${selectedReqForUpload.projectName}_Design.dwg`,
-        fileType: uploadFileType, fileSize: uploadFileSize, deliverable: uploadDeliverableType,
-        version: uploadVersion, submittedBy: selectedDesignerName, notes: uploadNotes, fileId,
+        fileName: uploadFileName || selectedFileObj.name,
+        fileType: uploadFileType, fileSize: uploadFileSize || `${(selectedFileObj.size / 1024 / 1024).toFixed(2)} MB`,
+        deliverable: uploadDeliverableType, version: uploadVersion,
+        submittedBy: myName, notes: uploadNotes, fileId: up.fileId, silent: true,
       });
+      await requestsApi.submitForApproval(selectedReqForUpload.id, { remarks: uploadNotes, submittedBy: myName });
       await reloadTeamData();
       const reqs = await requestsApi.list(); setRequests(reqs);
-      notify(`Successfully uploaded ${uploadFileName}! Status updated to 'Pending Head Review'.`);
+      notify(`Successfully submitted ${uploadFileName || selectedFileObj.name} for approval. The Design Head has been notified.`);
       setUploadModalOpen(false); setSelectedReqForUpload(null); setSelectedFileObj(null);
-    } catch (err) { notify(err.message || 'Upload failed.'); }
+    } catch (err) { notify(err.message || 'Could not submit for approval.'); }
+    finally { setSubmitting(false); }
   };
 
   // Handle Status Change (e.g. Start Work)
@@ -384,7 +393,7 @@ export default function DesignTeamDashboard({
             { id: 'Dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, badge: null },
             { id: 'Requirements', label: 'Assigned Tasks', icon: <Inbox size={18} />, badge: metrics.totalAssigned },
 
-            { id: 'Submittal Status', label: 'Head Feedback', icon: <Clock size={18} />, badge: (metrics.pendingReview + metrics.revisionNeeded) > 0 ? (metrics.pendingReview + metrics.revisionNeeded) : null },
+            { id: 'Submittal Status', label: 'Head Feedback', icon: <Clock size={18} />, badge: metrics.revisionNeeded > 0 ? metrics.revisionNeeded : null },
             { id: 'File Manager', label: 'File Manager', icon: <FolderOpen size={18} />, badge: uploadedFilesList.length },
             { id: 'Notifications', label: 'Notifications', icon: <Bell size={18} />, badge: visibleNotifications.filter(n => !n.read).length || null }
           ].map(item => (
@@ -549,7 +558,7 @@ export default function DesignTeamDashboard({
                           <span style={{ fontWeight: 700, fontSize: '0.82rem', color: notif.read ? '#334155' : '#1E3A8A' }}>
                             {notif.title}
                           </span>
-                          <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{notif.time}</span>
+                          <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{fmtDateTime(notif.createdAt, notif.time)}</span>
                         </div>
                         <div style={{ fontSize: '0.78rem', color: '#64748B', lineHeight: '1.3' }}>
                           {notif.desc}
@@ -1199,7 +1208,7 @@ export default function DesignTeamDashboard({
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <strong style={{ fontSize: '0.88rem', color: '#0F172A', fontWeight: notif.read ? 600 : 700 }}>{notif.title}</strong>
-                          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{notif.time}</span>
+                          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{fmtDateTime(notif.createdAt, notif.time)}</span>
                         </div>
                         <p style={{ fontSize: '0.8rem', color: '#475569', margin: '4px 0 0 0', lineHeight: '1.4' }}>{notif.desc}</p>
                         {notif.requestId ? <span style={{ fontSize: '0.72rem', color: '#2563EB', fontWeight: 600 }}>{notif.requestId} &rarr; open task</span> : null}
@@ -1524,9 +1533,9 @@ export default function DesignTeamDashboard({
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                        <button type="button" onClick={handleSubmitForApproval}
-                          style={{ padding: '10px 24px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <UploadCloud size={16} /> {['Changes Requested', 'Rework Required', 'Rejected', 'Revision Requested'].includes(selectedReqForDetail.status) ? 'Resubmit for Approval' : 'Submit for Approval'}
+                        <button type="button" onClick={handleSubmitForApproval} disabled={submitting}
+                          style={{ padding: '10px 24px', borderRadius: '6px', border: 'none', backgroundColor: submitting ? '#94A3B8' : '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.82rem', cursor: submitting ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <UploadCloud size={16} /> {submitting ? 'Submitting\u2026' : (['Changes Requested', 'Rework Required', 'Rejected', 'Revision Requested'].includes(selectedReqForDetail.status) ? 'Resubmit for Approval' : 'Submit for Approval')}
                         </button>
                       </div>
                     </div>
@@ -1666,9 +1675,10 @@ export default function DesignTeamDashboard({
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                  disabled={submitting}
+                  style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: submitting ? '#94A3B8' : '#2563EB', color: '#FFFFFF', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', cursor: submitting ? 'default' : 'pointer' }}
                 >
-                  <Send size={16} /> Submit to Design Head
+                  <Send size={16} /> {submitting ? 'Submitting\u2026' : 'Submit for Approval'}
                 </button>
               </div>
             </form>

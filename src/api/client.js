@@ -69,14 +69,17 @@ const resource = (base) => ({
 export const requestsApi = {
   ...resource('/requests'),
   assign: (id, payload) => api(`/requests/${encodeURIComponent(id)}/assign`, { method: 'POST', body: payload }),
-  setDesigner: (id, designerName) => api(`/requests/${encodeURIComponent(id)}/designer`, { method: 'PUT', body: { designerName } }),
+  setDesigner: (id, body) => api(`/requests/${encodeURIComponent(id)}/designer`, { method: 'PUT', body: body || {} }),
   setStatus: (id, status, note) => api(`/requests/${encodeURIComponent(id)}/status`, { method: 'PUT', body: { status, note } }),
   addComment: (id, payload) => api(`/requests/${encodeURIComponent(id)}/comments`, { method: 'POST', body: payload }),
   saveRequirement: (id, payload) => api(`/requests/${encodeURIComponent(id)}/requirement`, { method: 'PUT', body: payload }),
   addAttachment: (id, payload) => api(`/requests/${encodeURIComponent(id)}/attachments`, { method: 'POST', body: payload }),
-  approve: (id) => api(`/requests/${encodeURIComponent(id)}/approve`, { method: 'POST' }),
+  approve: (id, feedback) => api(`/requests/${encodeURIComponent(id)}/approve`, { method: 'POST', body: { feedback: feedback || '' } }),
   reject: (id, reason) => api(`/requests/${encodeURIComponent(id)}/reject`, { method: 'POST', body: { reason } }),
   requestChanges: (id, remarks) => api(`/requests/${encodeURIComponent(id)}/request-changes`, { method: 'POST', body: { remarks } }),
+  project: (id) => api(`/requests/${encodeURIComponent(id)}/project`), // live project details from Procurement
+  mine: () => api('/requests/mine'), // requests assigned to the logged-in team member
+  submitForApproval: (id, payload) => api(`/requests/${encodeURIComponent(id)}/submit`, { method: 'POST', body: payload || {} }),
 };
 
 export const designersApi = {

@@ -35,7 +35,7 @@ import {
   Check,
   FileSpreadsheet
 } from 'lucide-react';
-import { requestsApi, submittalsApi, notificationsApi, filesApi } from './api/client';
+import { requestsApi, submittalsApi, notificationsApi, filesApi, getUser } from './api/client';
 import { notify } from './notify';
 
 export default function DesignTeamDashboard({
@@ -46,11 +46,20 @@ export default function DesignTeamDashboard({
   onLogout,
   loginEmail
 }) {
-  // Active Navigation Tab: 'Dashboard' | 'Requirements' | 'Upload Submittals' | 'Review Queue' | 'Drawing Vault' | 'Head Revisions'
+  // The logged-in team member (authoritative identity from the saved session).
+  const me = getUser() || {};
+  const myName = me.name || '';
+  const myInitials = (myName || 'DT').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  // A request belongs to this member if assigned to their account id or their name.
+  const mineReq = React.useCallback((r) => (
+    !!r && ((me._id && String(r.assignedUserId) === String(me._id)) || (myName && r.assignedDesigner === myName))
+  ), [me._id, myName]);
+
+  // Active Navigation Tab
   const [currentTab, setCurrentTab] = useState('Dashboard');
 
-  // Selected Designer filter
-  const [selectedDesignerName, setSelectedDesignerName] = useState('All Team');
+  // Identity filter — locked to the logged-in member (their own tasks only).
+  const [selectedDesignerName, setSelectedDesignerName] = useState(myName || '');
 
   // Search & Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,6 +86,26 @@ export default function DesignTeamDashboard({
   // Team Notifications state
   const [teamNotifications, setTeamNotifications] = useState([]);
 
+  // Project details for the open task (live from Procurement) + the current user's
+  // notifications only (the specific assigned member), falling back to broadcasts.
+  const [detailProject, setDetailProject] = useState(null);
+  const [detailProjectLoading, setDetailProjectLoading] = useState(false);
+  const visibleNotifications = useMemo(() => (
+    selectedDesignerName === 'All Team'
+      ? teamNotifications
+      : teamNotifications.filter(n => !n.designerName || n.designerName === selectedDesignerName)
+  ), [teamNotifications, selectedDesignerName]);
+
+  // Open the exact task a notification points at (and mark it read).
+  const openTaskFromNotification = async (notif) => {
+    try { const nid = notif._id || notif.id; if (nid) { await notificationsApi.markRead(nid); setTeamNotifications(prev => prev.map(n => (n.id === notif.id ? { ...n, read: true } : n))); } } catch { /* ignore */ }
+    setShowNotificationsPopover(false);
+    const req = notif.requestId ? requests.find(r => r.id === notif.requestId) : null;
+    if (req) { setSelectedReqForDetail(req); setActiveDrawerTab('Requirements'); }
+    else if (notif.type === 'revision') { setCurrentTab('Submittal Status'); }
+    else { setCurrentTab('Requirements'); }
+  };
+
   // Upload Form State & Notification Ref
   const [selectedFileObj, setSelectedFileObj] = useState(null);
   const fileInputRef = React.useRef(null);
@@ -102,7 +131,7 @@ export default function DesignTeamDashboard({
   const [uploadFileType, setUploadFileType] = useState('AutoCAD');
   const [uploadDeliverableType, setUploadDeliverableType] = useState('2D Drawing');
   const [uploadVersion, setUploadVersion] = useState('v1.0');
-  const [uploadFileSize, setUploadFileSize] = useState('14.2 MB');
+  const [uploadFileSize, setUploadFileSize] = useState('');
   const [uploadNotes, setUploadNotes] = useState('');
 
   const handleFileSelect = (e) => {
@@ -126,77 +155,16 @@ export default function DesignTeamDashboard({
   // Comment state inside Detail Modal
   const [newCommentText, setNewCommentText] = useState('');
 
-  // Tesco ERM States & Integration Handlers
-  const [ermSyncStatus, setErmSyncStatus] = useState('connected'); // 'connected' | 'syncing' | 'error'
-  const [lastErmSync, setLastErmSync] = useState('2026-07-22 09:30 AM');
-  const [ermSyncLogs, setErmSyncLogs] = useState([
-    { id: 1, type: 'info', text: 'Tesco ERM sync pipeline listening on port 8443.', timestamp: '09:20:12' },
-    { id: 2, type: 'success', text: 'Authentication successful with Tesco Enterprise Gateway.', timestamp: '09:20:13' },
-    { id: 3, type: 'info', text: 'Pushed structural drawings manifest to ERM ERP Storage.', timestamp: '09:25:00' },
-    { id: 4, type: 'success', text: 'Synced 3 active drawing metadata sets to Tesco ERM database.', timestamp: '09:30:00' }
-  ]);
-  const [ermInventory, setErmInventory] = useState([
-    { id: 'INV-001', material: 'IS-2062 Grade Steel Plate', category: 'Plates & Sheets', stock: 120, allocated: 45, unit: 'Tons', warningLevel: 30 },
-    { id: 'INV-002', material: 'High Tensile PEB Columns (HTS)', category: 'PEB Structures', stock: 85, allocated: 30, unit: 'Pcs', warningLevel: 20 },
-    { id: 'INV-003', material: 'Cold Rolled Purlins (Z & C Sections)', category: 'Structural Purlins', stock: 450, allocated: 180, unit: 'Meters', warningLevel: 100 },
-    { id: 'INV-004', material: 'M24 High Strength Friction Grip Bolts', category: 'Fasteners', stock: 2500, allocated: 800, unit: 'Units', warningLevel: 500 }
-  ]);
-  const [ermProjectMapping, setErmProjectMapping] = useState([
-    { crmId: 'REQ-2026-001', name: 'PEB Warehouse Structure', ermId: 'TS-ERM-9403', type: 'Material & Capacity', status: 'Synced' },
-    { crmId: 'REQ-2026-002', name: 'Residential Roof Structure', ermId: 'TS-ERM-8891', type: 'Material Billing', status: 'Synced' },
-    { crmId: 'REQ-2026-003', name: 'Commercial Glass Canopy', ermId: 'TS-ERM-7622', type: 'Engineering Capacity', status: 'Pending Sync' }
-  ]);
-  
-  const triggerErmSync = () => {
-    setErmSyncStatus('syncing');
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setErmSyncLogs(prev => [
-      ...prev,
-      { id: prev.length + 1, type: 'info', text: 'Starting manually triggered Tesco ERM full synchronization...', timestamp }
-    ]);
-
-    setTimeout(() => {
-      const now = new Date();
-      const formatTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const formatSyncDate = now.toISOString().split('T')[0] + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
-      setLastErmSync(formatSyncDate);
-      setErmSyncStatus('connected');
-      
-      setErmProjectMapping(prev => prev.map(m => ({ ...m, status: 'Synced' })));
-      
-      setErmSyncLogs(prev => [
-        ...prev,
-        { id: prev.length + 1, type: 'success', text: 'Tesco ERM Database: Successfully updated project models & design assets.', timestamp: formatTime }
-      ]);
-    }, 1500);
-  };
-
-  const handleUpdateAllocation = (invId, amount) => {
-    setErmInventory(prev => prev.map(item => {
-      if (item.id === invId) {
-        const newAllocated = Math.max(0, Math.min(item.stock, item.allocated + amount));
-        // Add console log
-        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        setErmSyncLogs(l => [
-          ...l,
-          { id: l.length + 1, type: 'info', text: `Adjusted allocation of ${item.material} by ${amount > 0 ? '+' : ''}${amount} ${item.unit}. New allocation: ${newAllocated} ${item.unit}.`, timestamp }
-        ]);
-        return { ...item, allocated: newAllocated };
-      }
-      return item;
-    }));
-  };
+  // (Tesco ERM integration removed)
 
   // Active Designer Profile object
-  const activeDesigner = useMemo(() => {
-    return designers.find(d => d.name === selectedDesignerName) || designers[0] || {
-      name: 'Amit Patel',
-      role: 'PEB Specialist',
-      avatar: 'AP',
-      status: 'Available'
-    };
-  }, [designers, selectedDesignerName]);
+  const activeDesigner = useMemo(() => ({
+    name: myName || 'Design Team',
+    role: me.designation || 'Design Team',
+    avatar: myInitials,
+    status: 'Available',
+    employeeId: me.employeeId || '',
+  }), [myName, me.designation, me.employeeId, myInitials]);
 
   // Filtered requests: Exclusively PEB project types for Design Team CRM
   const designerRequests = useMemo(() => {
@@ -204,10 +172,8 @@ export default function DesignTeamDashboard({
       // Exclusively PEB projects for Design Team CRM
       const isPEB = r.projectType === 'PEB';
 
-      // Show tasks assigned to selected designer, or unassigned tasks available for team
-      const isAssignedToCurrent = selectedDesignerName === 'All Team' 
-        ? true 
-        : (r.assignedDesigner === selectedDesignerName || r.assignedDesigner === 'Unassigned');
+      // Only tasks assigned to the logged-in team member.
+      const isAssignedToCurrent = mineReq(r);
 
       const matchesSearch = 
         r.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -220,13 +186,13 @@ export default function DesignTeamDashboard({
 
       const matchesDateRange = (!startDateFilter || r.dueDate >= startDateFilter) && (!endDateFilter || r.dueDate <= endDateFilter);
 
-      return isPEB && isAssignedToCurrent && matchesSearch && matchesStatus && matchesPriority && matchesDateRange;
+      return isAssignedToCurrent && matchesSearch && matchesStatus && matchesPriority && matchesDateRange;
     });
-  }, [requests, selectedDesignerName, searchTerm, statusFilter, priorityFilter, startDateFilter, endDateFilter]);
+  }, [requests, mineReq, searchTerm, statusFilter, priorityFilter, startDateFilter, endDateFilter]);
 
   // Summary Metrics for Design Team (PEB Projects Only)
   const metrics = useMemo(() => {
-    const assigned = requests.filter(r => r.projectType === 'PEB' && (selectedDesignerName === 'All Team' ? true : r.assignedDesigner === selectedDesignerName));
+    const assigned = requests.filter(r => mineReq(r));
     return {
       totalAssigned: assigned.length,
       inProgress: assigned.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length,
@@ -235,7 +201,7 @@ export default function DesignTeamDashboard({
       revisionNeeded: assigned.filter(r => r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head')).length,
       urgentCount: assigned.filter(r => r.priority === 'Urgent').length
     };
-  }, [requests, selectedDesignerName]);
+  }, [requests, mineReq]);
 
   // Status Badge Helper
   const renderStatusBadge = (status) => {
@@ -246,7 +212,14 @@ export default function DesignTeamDashboard({
         return <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#E0E7FF', color: '#3730A3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Inbox size={12} /> Assigned from Head</span>;
       case 'Pending Review':
       case 'Under Review':
-        return <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#FEF3C7', color: '#92400E', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><HourglassIcon /> Waiting for Head Review</span>;
+      case 'Submitted for Approval':
+      case 'Resubmitted':
+        return <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#FEF3C7', color: '#92400E', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><HourglassIcon /> {status === 'Resubmitted' ? 'Resubmitted — awaiting review' : 'Submitted — awaiting review'}</span>;
+      case 'Changes Requested':
+      case 'Rework Required':
+        return <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#FFEDD5', color: '#9A3412', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={12} /> Changes Requested</span>;
+      case 'Rejected':
+        return <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#FEE2E2', color: '#991B1B', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={12} /> Rejected</span>;
       case 'Approved':
       case 'Completed':
         return <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#DCFCE7', color: '#166534', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><CheckCircle2 size={12} /> Approved</span>;
@@ -279,9 +252,45 @@ export default function DesignTeamDashboard({
   // Handle Opening Upload Modal
   const handleOpenUpload = (req) => {
     setSelectedReqForUpload(req);
-    setUploadFileName(`${req.projectName.replace(/\s+/g, '_')}_Layout_${uploadVersion}.dwg`);
-    setUploadNotes(`Uploaded completed design drawing for ${req.projectName} (${req.requirement}) as per Design Head specifications.`);
+    setUploadFileName('');
+    setUploadNotes('');
     setUploadModalOpen(true);
+  };
+
+  // Multiple-file "Submit for Approval" state + handler (drawer).
+  const [submitFiles, setSubmitFiles] = useState([]);
+  const [submitRemarks, setSubmitRemarks] = useState('');
+  const detectType = (fileName) => {
+    const ext = (String(fileName).split('.').pop() || '').toLowerCase();
+    if (ext === 'pdf') return 'PDF';
+    if (ext === 'dwg' || ext === 'dxf') return 'AutoCAD';
+    if (ext === 'skp' || ext === 'fbx') return '3D Model';
+    if (ext === 'std') return 'STAAD';
+    if (ext === 'zip' || ext === 'rar') return 'ZIP Archive';
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) return 'Image';
+    return 'File';
+  };
+  const handleSubmitForApproval = async () => {
+    const req = selectedReqForDetail;
+    if (!req) return;
+    if (submitFiles.length === 0) { notify('Please choose at least one completed design file to submit.'); return; }
+    try {
+      for (const f of submitFiles) {
+        const up = await filesApi.upload(f, { entity: 'submittal', entityId: req.id, uploadedBy: myName });
+        await submittalsApi.create({
+          reqId: req.id, projectName: req.projectName, fileName: f.name,
+          fileType: detectType(f.name), fileSize: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
+          deliverable: uploadDeliverableType, version: uploadVersion,
+          submittedBy: myName, notes: submitRemarks, fileId: up.fileId, silent: true,
+        });
+      }
+      const updated = await requestsApi.submitForApproval(req.id, { remarks: submitRemarks, submittedBy: myName });
+      await reloadTeamData();
+      const reqs = await requestsApi.list(); setRequests(reqs);
+      setSelectedReqForDetail(reqs.find(r => r.id === req.id) || updated);
+      setSubmitFiles([]); setSubmitRemarks('');
+      notify('Submitted for approval. The Design Head has been notified.');
+    } catch (err) { notify(err.message || 'Could not submit for approval.'); }
   };
 
   // Handle Submitting Design File
@@ -346,6 +355,18 @@ export default function DesignTeamDashboard({
   }, []);
   React.useEffect(() => { reloadTeamData(); }, [reloadTeamData]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+    if (selectedReqForDetail && selectedReqForDetail.id) {
+      setDetailProject(null); setDetailProjectLoading(true);
+      requestsApi.project(selectedReqForDetail.id)
+        .then(pj => { if (!cancelled) setDetailProject(pj); })
+        .catch(() => { if (!cancelled) setDetailProject(null); })
+        .finally(() => { if (!cancelled) setDetailProjectLoading(false); });
+    } else { setDetailProject(null); }
+    return () => { cancelled = true; };
+  }, [selectedReqForDetail && selectedReqForDetail.id]);
+
   return (
     <div className="app-layout" style={{ fontFamily: 'var(--font-sans)', display: 'flex', minHeight: '100vh', backgroundColor: '#F8FAFC', width: '100vw' }}>
       
@@ -371,18 +392,11 @@ export default function DesignTeamDashboard({
 
             { id: 'Submittal Status', label: 'Head Feedback', icon: <Clock size={18} />, badge: (metrics.pendingReview + metrics.revisionNeeded) > 0 ? (metrics.pendingReview + metrics.revisionNeeded) : null },
             { id: 'File Manager', label: 'File Manager', icon: <FolderOpen size={18} />, badge: uploadedFilesList.length },
-            { id: 'Notifications', label: 'Notifications', icon: <Bell size={18} />, badge: teamNotifications.filter(n => !n.read).length || null },
-            { id: 'Tesco ERM', label: 'Tesco ERM', icon: <Database size={18} />, badge: null }
+            { id: 'Notifications', label: 'Notifications', icon: <Bell size={18} />, badge: visibleNotifications.filter(n => !n.read).length || null }
           ].map(item => (
             <li key={item.id}>
               <div
-                onClick={() => {
-                  if (item.id === 'Tesco ERM') {
-                    window.open('/erm.html', '_blank');
-                  } else {
-                    setCurrentTab(item.id);
-                  }
-                }}
+                onClick={() => setCurrentTab(item.id)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -393,12 +407,8 @@ export default function DesignTeamDashboard({
                   fontSize: '0.85rem',
                   fontWeight: currentTab === item.id ? 700 : 500,
                   transition: 'all 0.2s',
-                  backgroundColor: currentTab === item.id 
-                    ? (item.id === 'Tesco ERM' ? '#44A810' : 'rgba(255,255,255,0.18)') 
-                    : (item.id === 'Tesco ERM' ? 'rgba(68, 168, 16, 0.15)' : 'transparent'),
-                  color: currentTab === item.id 
-                    ? '#FFFFFF' 
-                    : (item.id === 'Tesco ERM' ? '#A3E635' : 'rgba(255,255,255,0.8)')
+                  backgroundColor: currentTab === item.id ? 'rgba(255,255,255,0.18)' : 'transparent',
+                  color: currentTab === item.id ? '#FFFFFF' : 'rgba(255,255,255,0.8)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -430,7 +440,7 @@ export default function DesignTeamDashboard({
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeDesigner.name}</div>
-              <div style={{ fontSize: '0.68rem', color: '#A5B4FC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeDesigner.role}</div>
+              <div style={{ fontSize: '0.68rem', color: '#A5B4FC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeDesigner.role}{activeDesigner.employeeId ? ` · ${activeDesigner.employeeId}` : ''}</div>
             </div>
             <button 
               onClick={onLogout}
@@ -456,10 +466,9 @@ export default function DesignTeamDashboard({
               {currentTab === 'Submittal Status' && 'Head Feedback'}
               {currentTab === 'File Manager' && 'File Manager & Submittal History'}
               {currentTab === 'Notifications' && 'Notifications'}
-              {currentTab === 'Tesco ERM' && 'Tesco ERM Integration & Enterprise Sync'}
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '2px 0 0 0' }}>
-              Tesco Structures Design Workspace &bull; Logged in as <strong style={{ color: '#1E3A8A' }}>Design Team ({selectedDesignerName})</strong>
+              Tesco Structures Design Workspace &bull; Logged in as <strong style={{ color: '#1E3A8A' }}>{myName || 'Design Team'}{me.designation ? ` · ${me.designation}` : ''}</strong>
             </p>
           </div>
 
@@ -487,8 +496,8 @@ export default function DesignTeamDashboard({
                 }}
               >
                 <Bell size={18} color={showNotificationsPopover ? '#2563EB' : '#475569'} />
-                {teamNotifications.some(n => !n.read) && (
-                  <span style={{ position: 'absolute', top: '2px', right: '2px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444', border: '2px solid #FFFFFF' }} />
+                {visibleNotifications.filter(n => !n.read).length > 0 && (
+                  <span style={{ position: 'absolute', top: '-3px', right: '-3px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', backgroundColor: '#EF4444', border: '2px solid #FFFFFF', color: '#FFFFFF', fontSize: '0.6rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{visibleNotifications.filter(n => !n.read).length}</span>
                 )}
               </button>
 
@@ -510,9 +519,9 @@ export default function DesignTeamDashboard({
                   <div style={{ padding: '14px 16px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F8FAFC' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0F172A' }}>Notifications</span>
-                      {teamNotifications.filter(n => !n.read).length > 0 && (
+                      {visibleNotifications.filter(n => !n.read).length > 0 && (
                         <span style={{ padding: '2px 8px', borderRadius: '10px', backgroundColor: '#EF4444', color: '#FFFFFF', fontWeight: 800, fontSize: '0.7rem' }}>
-                          {teamNotifications.filter(n => !n.read).length} New
+                          {visibleNotifications.filter(n => !n.read).length} New
                         </span>
                       )}
                     </div>
@@ -527,15 +536,10 @@ export default function DesignTeamDashboard({
 
                   {/* Popover Items List */}
                   <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
-                    {teamNotifications.map(notif => (
+                    {visibleNotifications.map(notif => (
                       <div
                         key={notif.id}
-                        onClick={() => {
-                          if (notif._id) notificationsApi.markRead(notif._id); setTeamNotifications(teamNotifications.map(n => n.id === notif.id ? { ...n, read: true } : n));
-                          if (notif.type === 'revision') setCurrentTab('Head Revisions');
-                          else if (notif.type === 'assignment') setCurrentTab('Requirements');
-                          setShowNotificationsPopover(false);
-                        }}
+                        onClick={() => openTaskFromNotification(notif)}
                         style={{
                           padding: '12px 16px',
                           borderBottom: '1px solid #F1F5F9',
@@ -556,9 +560,10 @@ export default function DesignTeamDashboard({
                         <div style={{ fontSize: '0.78rem', color: '#64748B', lineHeight: '1.3' }}>
                           {notif.desc}
                         </div>
+                        {notif.requestId ? <div style={{ fontSize: '0.68rem', color: '#2563EB', fontWeight: 600, marginTop: '2px' }}>{notif.requestId} &rarr; open task</div> : null}
                       </div>
                     ))}
-                    {teamNotifications.length === 0 && (
+                    {visibleNotifications.length === 0 && (
                       <div style={{ padding: '24px', textAlign: 'center', color: '#64748B', fontSize: '0.8rem' }}>
                         No notifications right now.
                       </div>
@@ -945,7 +950,7 @@ export default function DesignTeamDashboard({
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {requests.filter(r => r.projectType === 'PEB' && (selectedDesignerName === 'All Team' ? true : r.assignedDesigner === selectedDesignerName) && (r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head'))).map(r => (
+                    {requests.filter(r => mineReq(r) && (r.status === 'Revision' || r.status === 'Revision Requested' || r.status === 'Changes Requested' || r.status === 'Rework Required' || r.comments?.some(c => c.sender === 'Design Head'))).map(r => (
                       <div key={r.id} style={{ border: '1px solid #FCA5A5', backgroundColor: '#FEF2F2', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -980,7 +985,7 @@ export default function DesignTeamDashboard({
                       </div>
                     ))}
 
-                    {requests.filter(r => r.projectType === 'PEB' && (selectedDesignerName === 'All Team' ? true : r.assignedDesigner === selectedDesignerName) && (r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head'))).length === 0 && (
+                    {requests.filter(r => mineReq(r) && (r.status === 'Revision' || r.status === 'Revision Requested' || r.status === 'Changes Requested' || r.status === 'Rework Required' || r.comments?.some(c => c.sender === 'Design Head'))).length === 0 && (
                       <div style={{ textAlign: 'center', padding: '48px', color: '#64748B' }}>
                         <CheckCircle2 size={32} color="#166534" style={{ marginBottom: '8px' }} />
                         <div style={{ fontWeight: 700, color: '#1E293B' }}>All clear! No pending revision requests from Design Head.</div>
@@ -1118,10 +1123,10 @@ export default function DesignTeamDashboard({
                 <div>
                   <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Recent Alerts & Updates</h3>
                   <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '2px 0 0 0' }}>
-                    {teamNotifications.filter(n => !n.read).length} unread notifications
+                    {visibleNotifications.filter(n => !n.read).length} unread notifications
                   </p>
                 </div>
-                {teamNotifications.filter(n => !n.read).length > 0 && (
+                {visibleNotifications.filter(n => !n.read).length > 0 && (
                   <button
                     onClick={() => { notificationsApi.markAllRead('team'); setTeamNotifications(teamNotifications.map(n => ({ ...n, read: true }))); }}
                     style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'background-color 0.2s' }}
@@ -1134,7 +1139,7 @@ export default function DesignTeamDashboard({
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {teamNotifications.map(notif => {
+                {visibleNotifications.map(notif => {
                   let badgeBg = '#EFF6FF';
                   let badgeColor = '#2563EB';
                   if (notif.type === 'revision') {
@@ -1148,14 +1153,7 @@ export default function DesignTeamDashboard({
                   return (
                     <div 
                       key={notif.id}
-                      onClick={() => {
-                        if (notif._id) notificationsApi.markRead(notif._id); setTeamNotifications(teamNotifications.map(n => n.id === notif.id ? { ...n, read: true } : n));
-                        if (notif.type === 'revision') {
-                          setCurrentTab('Submittal Status');
-                        } else {
-                          setCurrentTab('Requirements');
-                        }
-                      }}
+                      onClick={() => openTaskFromNotification(notif)}
                       style={{ 
                         backgroundColor: notif.read ? '#FFFFFF' : '#F8FAFC', 
                         border: notif.read ? '1px solid var(--border-color)' : '1px solid #BFDBFE', 
@@ -1198,6 +1196,7 @@ export default function DesignTeamDashboard({
                           <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{notif.time}</span>
                         </div>
                         <p style={{ fontSize: '0.8rem', color: '#475569', margin: '4px 0 0 0', lineHeight: '1.4' }}>{notif.desc}</p>
+                        {notif.requestId ? <span style={{ fontSize: '0.72rem', color: '#2563EB', fontWeight: 600 }}>{notif.requestId} &rarr; open task</span> : null}
                       </div>
                       {!notif.read && (
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#2563EB', alignSelf: 'center' }}></span>
@@ -1206,7 +1205,7 @@ export default function DesignTeamDashboard({
                   );
                 })}
 
-                {teamNotifications.length === 0 && (
+                {visibleNotifications.length === 0 && (
                   <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', color: '#64748B', fontWeight: 600, fontSize: '0.9rem' }}>
                     No notifications right now.
                   </div>
@@ -1216,173 +1215,6 @@ export default function DesignTeamDashboard({
           )}
 
           {/* TAB 7: TESCO ERM INTEGRATION */}
-          {currentTab === 'Tesco ERM' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* TOP SUMMARY STATS */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: 'var(--shadow-sm)' }}>
-                  <div style={{ backgroundColor: ermSyncStatus === 'connected' ? '#DEF7EC' : ermSyncStatus === 'syncing' ? '#E1EFFE' : '#FDE8E8', color: ermSyncStatus === 'connected' ? '#03543F' : ermSyncStatus === 'syncing' ? '#1E429F' : '#9B1C1C', padding: '12px', borderRadius: '10px' }}>
-                    <Cpu size={24} className={ermSyncStatus === 'syncing' ? 'spin-animation' : ''} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>Tesco ERM API Bridge</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {ermSyncStatus === 'connected' ? 'Connected' : ermSyncStatus === 'syncing' ? 'Syncing...' : 'Disconnected'}
-                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: ermSyncStatus === 'connected' ? '#10B981' : ermSyncStatus === 'syncing' ? '#3B82F6' : '#EF4444' }}></span>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: 'var(--shadow-sm)' }}>
-                  <div style={{ backgroundColor: '#EEF2F6', color: '#1E3A8A', padding: '12px', borderRadius: '10px' }}>
-                    <Database size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>Integrated Entities</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0F172A' }}>
-                      {ermProjectMapping.filter(p => p.status === 'Synced').length} / {ermProjectMapping.length} Mapped
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: 'var(--shadow-sm)' }}>
-                  <div style={{ backgroundColor: '#E0E7FF', color: '#3730A3', padding: '12px', borderRadius: '10px' }}>
-                    <RefreshCw size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>Last Full Sync</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
-                      {lastErmSync}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* MAIN CONTENT SPLIT GRID */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
-                
-                {/* LEFT COLUMN: MATERIAL INVENTORY sync */}
-                <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid var(--border-color)', padding: '24px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div>
-                    <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Tesco Enterprise Material Allocations</h2>
-                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '2px 0 0 0' }}>Sync design material estimates directly to Tesco warehouse and steel yard modules.</p>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {ermInventory.map(item => {
-                      const percentage = Math.round((item.allocated / item.stock) * 100);
-                      const isLow = (item.stock - item.allocated) <= item.warningLevel;
-                      return (
-                        <div key={item.id} style={{ border: '1px solid #E2E8F0', padding: '16px', borderRadius: '10px', backgroundColor: '#F8FAFC' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#1E293B', fontSize: '0.9rem' }}>{item.material}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Category: {item.category} | Part ID: {item.id}</div>
-                            </div>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', backgroundColor: isLow ? '#FEE2E2' : '#E2E8F0', color: isLow ? '#991B1B' : '#475569' }}>
-                              {isLow ? 'Critical Low' : 'Adequate'}
-                            </span>
-                          </div>
-
-                          {/* Progress Bar */}
-                          <div style={{ margin: '12px 0 8px 0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '4px' }}>
-                              <span>Allocated: {item.allocated} / {item.stock} {item.unit}</span>
-                              <span>{percentage}% Used</span>
-                            </div>
-                            <div style={{ height: '6px', backgroundColor: '#E2E8F0', borderRadius: '3px', overflow: 'hidden' }}>
-                              <div style={{ width: `${percentage}%`, height: '100%', backgroundColor: isLow ? '#EF4444' : '#34328C', borderRadius: '3px', transition: 'width 0.3s ease' }}></div>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
-                            <button
-                              onClick={() => handleUpdateAllocation(item.id, -5)}
-                              disabled={item.allocated <= 0}
-                              style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', fontSize: '0.75rem', fontWeight: 600, cursor: item.allocated <= 0 ? 'not-allowed' : 'pointer', opacity: item.allocated <= 0 ? 0.5 : 1 }}
-                            >
-                              -5 {item.unit}
-                            </button>
-                            <button
-                              onClick={() => handleUpdateAllocation(item.id, 5)}
-                              disabled={item.allocated >= item.stock}
-                              style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', fontSize: '0.75rem', fontWeight: 600, cursor: item.allocated >= item.stock ? 'not-allowed' : 'pointer', opacity: item.allocated >= item.stock ? 0.5 : 1 }}
-                            >
-                              +5 {item.unit}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* RIGHT COLUMN: ENTITY MAPPING & SYNC LOG CONSOLE */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  
-                  {/* Entity Mappings */}
-                  <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid var(--border-color)', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Project CRM ⇆ ERM Linkages</h3>
-                      <button 
-                        onClick={triggerErmSync} 
-                        disabled={ermSyncStatus === 'syncing'}
-                        style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#34328C', color: '#FFFFFF', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        <RefreshCw size={12} className={ermSyncStatus === 'syncing' ? 'spin-animation' : ''} />
-                        Sync Now
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {ermProjectMapping.map(proj => (
-                        <div key={proj.crmId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }}>
-                          <div>
-                            <div style={{ fontWeight: 700, color: '#1E293B' }}>{proj.name}</div>
-                            <div style={{ fontSize: '0.72rem', color: '#64748B' }}>CRM: {proj.crmId} ⇆ ERM: <code style={{ color: '#1E3A8A', fontWeight: 700 }}>{proj.ermId}</code></div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', backgroundColor: proj.status === 'Synced' ? '#DEF7EC' : '#FEF08A', color: proj.status === 'Synced' ? '#03543F' : '#713F12' }}>
-                              {proj.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* REST API Console Logs */}
-                  <div style={{ backgroundColor: '#0F172A', borderRadius: '14px', border: '1px solid #1E293B', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', height: '280px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1E293B', paddingBottom: '8px' }}>
-                      <div style={{ color: '#38BDF8', fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }}></span>
-                        Tesco Gateway Console Log
-                      </div>
-                      <button
-                        onClick={() => setErmSyncLogs([{ id: 1, type: 'info', text: 'Console cleared. Pipeline active.', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }])}
-                        style={{ background: 'none', border: 'none', color: '#64748B', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 600 }}
-                      >
-                        Clear Logs
-                      </button>
-                    </div>
-
-                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', fontFamily: 'Consolas, Monaco, monospace', fontSize: '0.72rem', color: '#E2E8F0' }}>
-                      {ermSyncLogs.map(log => (
-                        <div key={log.id} style={{ display: 'flex', gap: '8px', lineHeight: '1.4' }}>
-                          <span style={{ color: '#64748B', flexShrink: 0 }}>[{log.timestamp}]</span>
-                          <span style={{ color: log.type === 'success' ? '#4ADE80' : log.type === 'error' ? '#F87171' : '#38BDF8' }}>
-                            {log.type === 'success' ? '✔' : log.type === 'error' ? '✖' : 'ℹ'} {log.text}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-          )}
-
         </div>
       </div>
 
@@ -1405,6 +1237,50 @@ export default function DesignTeamDashboard({
                 <X size={20} />
               </button>
             </div>
+
+            {/* PROJECT DETAILS (auto-fetched from Procurement, read-only) */}
+            {(() => {
+              const pj = detailProject || {};
+              const val = (x) => (x === 0 || x) ? x : '\u2014';
+              const rows = [
+                ['Project Name', val(pj.projectName || selectedReqForDetail.projectName)],
+                ['Project Code', val(pj.projectCode || selectedReqForDetail.procurementProjectCode)],
+                ['Client', val(pj.client || selectedReqForDetail.customerName)],
+                ['Location', val(pj.location || selectedReqForDetail.location)],
+                ['Project Type', val(pj.projectType || selectedReqForDetail.projectType)],
+                ['Requirement', val(pj.requirement || selectedReqForDetail.requirement || selectedReqForDetail.service)],
+                ['Priority', val(pj.priority || selectedReqForDetail.priority)],
+                ['Due Date', val(pj.dueDate || selectedReqForDetail.dueDate)],
+              ];
+              if (pj.projectSize) rows.push(['Project Size', pj.projectSize]);
+              if (pj.materialDescription) rows.push(['Material / Scope', pj.materialDescription]);
+              if (pj.contactDetails) rows.push(['Contact', pj.contactDetails]);
+              if (pj.siteAddress) rows.push(['Site Address', pj.siteAddress]);
+              return (
+                <div style={{ margin: '16px 24px 0', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px', backgroundColor: '#F8FAFC' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0F172A' }}>Project Details</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: selectedReqForDetail.source === 'procurement' ? '#2563EB' : '#94A3B8' }}>
+                      {detailProjectLoading ? 'Loading\u2026' : (selectedReqForDetail.source === 'procurement' ? 'From Procurement' : 'Design CRM')}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px' }}>
+                    {rows.map(([k, v]) => (
+                      <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#94A3B8' }}>{k}</span>
+                        <span style={{ fontSize: '0.82rem', color: '#1E293B', fontWeight: 500, wordBreak: 'break-word' }}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedReqForDetail.description && (
+                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#94A3B8' }}>Description</span>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#334155', whiteSpace: 'pre-wrap' }}>{selectedReqForDetail.description}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Drawer Navigation Tabs */}
             <div style={{ padding: '0 24px' }}>
@@ -1577,110 +1453,74 @@ export default function DesignTeamDashboard({
 
               {activeDrawerTab === 'Submit Deliverable' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>Submit Design Deliverable</h4>
-                  <p style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '-8px', margin: 0 }}>
-                    Upload your CAD layouts, models, structural analysis files, or PDFs to submit directly to the Design Head for review.
+                  <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>Submit Design for Approval</h4>
+                  <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>
+                    Attach your completed design files (PDF, DWG, DXF, JPG, PNG, STAAD, ZIP, etc.), add remarks, and submit to the Design Head for review.
                   </p>
 
+                  {/* If the Head asked for changes / rejected, show the feedback here before resubmitting. */}
+                  {['Changes Requested', 'Rework Required', 'Rejected', 'Revision Requested'].includes(selectedReqForDetail.status) && (selectedReqForDetail.changeRemarks || selectedReqForDetail.rejectionReason) && (
+                    <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#9A3412', marginBottom: '4px' }}>Design Head feedback — please address and resubmit</div>
+                      <div style={{ fontSize: '0.82rem', color: '#7C2D12' }}>{selectedReqForDetail.changeRemarks || selectedReqForDetail.rejectionReason}</div>
+                    </div>
+                  )}
+
                   <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Select Design File</label>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                          <button 
-                            type="button"
-                            onClick={() => modalFileInputRef.current?.click()}
-                            style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#334155', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
-                          >
-                            Choose File
-                          </button>
-                          <span style={{ fontSize: '0.8rem', color: uploadFileName ? '#0F172A' : '#94A3B8', fontWeight: uploadFileName ? 600 : 400 }}>
-                            {uploadFileName || 'No file selected (Supports .dwg, .pdf, .std, .skp, etc.)'}
-                          </span>
-                          <input 
-                            type="file"
-                            ref={modalFileInputRef}
-                            style={{ display: 'none' }}
-                            onChange={handleFileSelect}
-                          />
-                        </div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>Design Files</label>
+                        <button type="button" onClick={() => modalFileInputRef.current?.click()}
+                          style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#334155', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+                          Choose Files
+                        </button>
+                        <input type="file" multiple ref={modalFileInputRef} style={{ display: 'none' }}
+                          onChange={(e) => { const picked = Array.from(e.target.files || []); e.target.value = ''; if (picked.length) setSubmitFiles(prev => [...prev, ...picked]); }} />
+                        {submitFiles.length > 0 ? (
+                          <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {submitFiles.map((f, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '7px 10px' }}>
+                                <FileText size={14} style={{ color: '#2563EB', flexShrink: 0 }} />
+                                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                                <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap' }}>{(f.size / 1024 / 1024).toFixed(2)} MB</span>
+                                <button type="button" onClick={() => setSubmitFiles(prev => prev.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontWeight: 700, fontSize: '0.75rem' }}>Remove</button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#94A3B8' }}>No files selected yet.</div>
+                        )}
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Software Engine</label>
-                          <select 
-                            value={uploadFileType}
-                            onChange={(e) => setUploadFileType(e.target.value)}
-                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
-                          >
-                            <option value="AutoCAD">AutoCAD (2D Layouts)</option>
-                            <option value="STAAD">STAAD.Pro (Structural Analysis)</option>
-                            <option value="3D Model">Tekla / SketchUp (3D Models)</option>
-                            <option value="PDF">PDF Report / Calculations</option>
-                            <option value="ZIP Archive">ZIP Package (Combined deliverables)</option>
-                          </select>
-                        </div>
-                        <div>
                           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Deliverable Type</label>
-                          <select 
-                            value={uploadDeliverableType}
-                            onChange={(e) => setUploadDeliverableType(e.target.value)}
-                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
-                          >
+                          <select value={uploadDeliverableType} onChange={(e) => setUploadDeliverableType(e.target.value)}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}>
                             <option value="2D Drawing">2D Drawing / GA Layout</option>
                             <option value="3D Structural Model">3D Structural Model / BIM</option>
                             <option value="Structural Calculation Report">Design / Member Estimation Calcs</option>
                             <option value="Fabrication Details">Fabrication / Erection details</option>
                           </select>
                         </div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
                           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Submission Version</label>
-                          <input 
-                            type="text" 
-                            value={uploadVersion}
-                            onChange={(e) => setUploadVersion(e.target.value)}
-                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>File Size</label>
-                          <input 
-                            type="text" 
-                            disabled
-                            value={uploadFileSize}
-                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#F1F5F9', fontSize: '0.8rem', color: '#64748B' }}
-                          />
+                          <input type="text" value={uploadVersion} onChange={(e) => setUploadVersion(e.target.value)}
+                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }} />
                         </div>
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Drafting assumptions & submittal notes</label>
-                        <textarea 
-                          rows={3}
-                          placeholder="Include assumptions, code standards used, load specs, or details..."
-                          value={uploadNotes}
-                          onChange={(e) => setUploadNotes(e.target.value)}
-                          style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem', outline: 'none' }}
-                        />
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Remarks / Comments</label>
+                        <textarea rows={3} placeholder="Assumptions, code standards used, load specs, or notes for the Design Head..."
+                          value={submitRemarks} onChange={(e) => setSubmitRemarks(e.target.value)}
+                          style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            setSelectedReqForUpload(selectedReqForDetail);
-                            setTimeout(() => {
-                              const eventMock = { preventDefault: () => {} };
-                              handleUploadSubmit(eventMock);
-                            }, 50);
-                          }}
-                          style={{ padding: '10px 24px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          <UploadCloud size={16} /> Submit Submittal File
+                        <button type="button" onClick={handleSubmitForApproval}
+                          style={{ padding: '10px 24px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <UploadCloud size={16} /> {['Changes Requested', 'Rework Required', 'Rejected', 'Revision Requested'].includes(selectedReqForDetail.status) ? 'Resubmit for Approval' : 'Submit for Approval'}
                         </button>
                       </div>
                     </div>

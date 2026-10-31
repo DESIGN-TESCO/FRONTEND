@@ -66,6 +66,10 @@ function App() {
   const [activities, setActivities] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [submittalsList, setSubmittalsList] = useState([]);
+  const [drawerProject, setDrawerProject] = useState(null);
+  const [drawerProjectLoading, setDrawerProjectLoading] = useState(false);
   const [activeDrawerTab, setActiveDrawerTab] = useState('Requirements');
   const [selectedDesignerName, setSelectedDesignerName] = useState(null);
 
@@ -448,6 +452,19 @@ function App() {
   const [showNotifications, setShowNotifications] = useState(false);
   const headNotifRef = React.useRef(null);
 
+  // Pull full, live project details (from Procurement) for the open request.
+  React.useEffect(() => {
+    let cancelled = false;
+    if (drawerOpen && selectedRequest && selectedRequest.id) {
+      setDrawerProject(null); setDrawerProjectLoading(true);
+      requestsApi.project(selectedRequest.id)
+        .then(p => { if (!cancelled) setDrawerProject(p); })
+        .catch(() => { if (!cancelled) setDrawerProject(null); })
+        .finally(() => { if (!cancelled) setDrawerProjectLoading(false); });
+    } else { setDrawerProject(null); }
+    return () => { cancelled = true; };
+  }, [drawerOpen, selectedRequest && selectedRequest.id]);
+
   React.useEffect(() => {
     const handleClickOutside = (event) => {
       if (headNotifRef.current && !headNotifRef.current.contains(event.target)) {
@@ -468,19 +485,28 @@ function App() {
     setDrawerOpen(true);
     setActiveDrawerTab('Requirements');
     
-    const designerObj = designers.find(d => d.name === request.assignedDesigner);
-    setAssigneeId(designerObj ? designerObj.id : '');
+    const curMember = teamMembers.find(m => m._id === request.assignedUserId) || teamMembers.find(m => m.name === request.assignedDesigner);
+    setAssigneeId(curMember ? curMember._id : '');
     setAssignDueDate(request.dueDate || '');
     setAssignEstHours(request.pebDetails?.timeline ? '24' : '16');
     setAssignPriority(request.priority || 'Medium');
     setAssignNotes('');
   };
 
+  // Open the design request a notification points at, and mark it read.
+  const handleOpenNotification = async (notif) => {
+    try { const nid = notif._id || notif.id; if (nid) { await notificationsApi.markRead(nid); setNotifications(prev => prev.map(n => (n.id === notif.id ? { ...n, read: true } : n))); } } catch { /* ignore */ }
+    setShowNotifications(false);
+    const req = notif.requestId ? requests.find(r => r.id === notif.requestId) : null;
+    if (req) { handleOpenDrawer(req); }
+    else { setCurrentTab('Design Requests'); setFilterStatus('All'); setFilterDesigner('All'); }
+  };
+
   const handleOpenAssignModal = (request) => {
     setAssignModalRequest(request);
     setIsAssignModalOpen(true);
-    const designerObj = designers.find(d => d.name === request.assignedDesigner);
-    setAssigneeId(designerObj ? designerObj.id : '');
+    const curMember = teamMembers.find(m => m._id === request.assignedUserId) || teamMembers.find(m => m.name === request.assignedDesigner);
+    setAssigneeId(curMember ? curMember._id : '');
     setAssignDueDate(request.dueDate || '');
     setAssignEstHours('24');
     setAssignPriority(request.priority || 'Medium');
@@ -490,21 +516,21 @@ function App() {
   const handleAssignDesignerSubmit = async (e) => {
     e.preventDefault();
     const req = assignModalRequest || selectedRequest;
-    if (!req || !assigneeId) return;
-    const designerObj = designers.find(d => d.id === assigneeId);
-    if (!designerObj) return;
+    if (!req || !assigneeId) { notify('Please select a team member.'); return; }
+    const member = teamMembers.find(m => m._id === assigneeId);
+    if (!member) { notify('Please select a valid team member.'); return; }
     try {
-      await requestsApi.assign(req.id, { assigneeId, dueDate: assignDueDate, priority: assignPriority, estHours: assignEstHours, notes: assignNotes, notify: notifyDesignerCheckbox });
+      await requestsApi.assign(req.id, { assigneeUserId: member._id, dueDate: assignDueDate, priority: assignPriority, estHours: assignEstHours, notes: assignNotes, notify: notifyDesignerCheckbox });
       await loadData();
       setIsAssignModalOpen(false);
       setAssignModalRequest(null);
-      notify(`Success: Project successfully assigned to ${designerObj.name}.`);
-    } catch (err) { notify(err.message || 'Could not assign designer.'); }
+      notify(`Success: Project successfully assigned to ${member.name}.`);
+    } catch (err) { notify(err.message || 'Could not assign team member.'); }
   };
 
-  const handleDirectAssignDesigner = async (requestId, designerName) => {
+  const handleDirectAssignDesigner = async (requestId, value) => {
     try {
-      await requestsApi.setDesigner(requestId, designerName || 'Unassigned');
+      await requestsApi.setDesigner(requestId, value ? { assigneeUserId: value } : { designerName: 'Unassigned' });
       await loadData();
     } catch (err) { notify(err.message || 'Could not update assignment.'); }
   };
@@ -625,10 +651,13 @@ function App() {
   const loadData = React.useCallback(async () => {
     setDataLoading(true); setLoadError('');
     try {
-      const [reqs, dess, acts, boqs, draws, docs, revs, notifs] = await Promise.all([
+      const [reqs, dess, acts, boqs, draws, docs, revs, notifs, subs, usersRes] = await Promise.all([
         requestsApi.list(), designersApi.list(), activitiesApi.list(), boqsApi.list(),
         drawingsApi.list(), documentsApi.list(), revisionsApi.list(), notificationsApi.list('head'),
+        submittalsApi.list().catch(() => []), authApi.listUsers().catch(() => ({ users: [] })),
       ]);
+      const members = (usersRes && usersRes.users ? usersRes.users : []).filter(u => u.role === 'design_team' && u.isActive !== false);
+      setTeamMembers(members); setSubmittalsList(Array.isArray(subs) ? subs : []);
       setRequests(reqs); setProjectsList(reqs.filter(r => r.status !== 'New'));
       setDesigners(dess); setActivities(acts); setBoqList(boqs);
       setDrawingsList(draws); setDocumentsList(docs); setRevisionsList(revs);
@@ -965,23 +994,18 @@ function App() {
             { id: 'Dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
             { id: 'Design Requests', label: 'Design Requests', icon: <Inbox size={18} /> },
             { id: 'Design Team', label: 'Design Team', icon: <Users size={18} /> },
-            { id: 'Review Queue', label: 'Review Queue', icon: <CheckSquare size={18} /> },
+            { id: 'Review Queue', label: 'Pending Approvals', icon: <CheckSquare size={18} /> },
             { id: 'Documents', label: 'Documents', icon: <FileText size={18} /> },
             { id: 'Drawings Library', label: 'Drawings Library', icon: <FolderOpen size={18} /> },
             { id: 'Calendar', label: 'Calendar', icon: <CalendarRange size={18} /> },
             { id: 'Notifications', label: 'Notifications', icon: <Bell size={18} /> },
             { id: 'Settings', label: 'Settings', icon: <Settings size={18} /> },
-            { id: 'Team Accounts', label: 'Team Accounts', icon: <UserPlus size={18} /> },
-            { id: 'Tesco ERM', label: 'Tesco ERM', icon: <Database size={18} /> }
+            { id: 'Team Accounts', label: 'Team Accounts', icon: <UserPlus size={18} /> }
           ].map(item => (
             <li key={item.id}>
               <div
                 className={`menu-item ${currentTab === item.id ? 'active' : ''}`}
                 onClick={() => {
-                  if (item.id === 'Tesco ERM') {
-                    window.open('/erm.html', '_blank');
-                    return;
-                  }
                   setCurrentTab(item.id);
                   setSelectedProjectId(null);
                   setSelectedBoqId(null);
@@ -999,12 +1023,8 @@ function App() {
                   fontSize: '0.85rem',
                   fontWeight: 500,
                   transition: 'background-color 0.2s',
-                  backgroundColor: currentTab === item.id 
-                    ? (item.id === 'Tesco ERM' ? '#44A810' : 'rgba(255,255,255,0.15)') 
-                    : (item.id === 'Tesco ERM' ? 'rgba(68, 168, 16, 0.15)' : 'transparent'),
-                  color: currentTab === item.id 
-                    ? '#FFFFFF' 
-                    : (item.id === 'Tesco ERM' ? '#A3E635' : 'rgba(255,255,255,0.8)')
+                  backgroundColor: currentTab === item.id ? 'rgba(255,255,255,0.15)' : 'transparent',
+                  color: currentTab === item.id ? '#FFFFFF' : 'rgba(255,255,255,0.8)'
                 }}
               >
                 {item.icon}
@@ -1085,8 +1105,8 @@ function App() {
                 title="Notifications"
               >
                 <Bell size={20} />
-                {notifications.some(n => !n.read) && (
-                  <span style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--danger)' }}></span>
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span style={{ position: 'absolute', top: '0px', right: '0px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', backgroundColor: 'var(--danger)', color: '#FFFFFF', fontSize: '0.6rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{notifications.filter(n => !n.read).length}</span>
                 )}
               </button>
 
@@ -1104,11 +1124,14 @@ function App() {
                   </button>
                 </div>
                 <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                  {notifications.length === 0 && (
+                    <div style={{ padding: '20px 16px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>No notifications yet.</div>
+                  )}
                   {notifications.map(notif => (
-                    <div key={notif.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', backgroundColor: !notif.read ? '#F8FAFC' : 'transparent' }}>
+                    <div key={notif.id} onClick={() => handleOpenNotification(notif)} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', backgroundColor: !notif.read ? '#F8FAFC' : 'transparent', cursor: 'pointer' }}>
                       <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#1E293B' }}>{notif.title}</div>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{notif.message}</p>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>{notif.time} &bull; {notif.category}</span>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{notif.message || notif.desc}</p>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>{notif.time}{notif.category ? ' \u2022 ' + notif.category : ''}{notif.requestId ? ' \u2022 ' + notif.requestId : ''}</span>
                     </div>
                   ))}
                 </div>
@@ -1130,7 +1153,7 @@ function App() {
                   { title: 'New Design Requests', value: requests.filter(r => r.status === 'New').length, icon: <Inbox size={20} />, trend: 'Awaiting triage', desc: 'From sales team', color: '#2B2E83', bg: '#EEF2F6', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('New'); setFilterDesigner('All'); } },
                   { title: 'Pending Assignment', value: requests.filter(r => r.assignedDesigner === 'Unassigned').length, icon: <UserPlus size={20} />, trend: 'Allocating', desc: 'Needs designer', color: '#F59E0B', bg: '#FEF3C7', onClick: () => { setCurrentTab('Design Requests'); setFilterDesigner('Unassigned'); setFilterStatus('All'); } },
                   { title: 'Active Projects', value: requests.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length, icon: <Clock size={20} />, trend: 'Active drawing', desc: 'In production', color: '#5C6AC4', bg: '#E0E7FF', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
-                  { title: 'Pending Review', value: requests.filter(r => r.status === 'Pending Review').length, icon: <AlertTriangle size={20} />, trend: 'Needs approval', desc: 'Drawing submittals', color: '#8B5CF6', bg: '#F3E8FF', onClick: () => { setCurrentTab('Review Queue'); } },
+                  { title: 'Pending Review', value: requests.filter(r => ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).length, icon: <AlertTriangle size={20} />, trend: 'Needs approval', desc: 'Drawing submittals', color: '#8B5CF6', bg: '#F3E8FF', onClick: () => { setCurrentTab('Review Queue'); } },
                   { title: 'Client Revisions', value: revisionsList.filter(r => r.status === 'Pending' || r.status === 'Urgent').length, icon: <MessageSquare size={20} />, trend: 'Active cycles', desc: 'Review adjustments', color: '#EF4444', bg: '#FEE2E2', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
                   { title: 'Overdue Tasks', value: requests.filter(r => ['Assigned', 'In Progress'].includes(r.status) && r.dueDate && new Date(r.dueDate) < new Date()).length, icon: <AlertCircle size={20} />, trend: 'Overdue SLA', desc: 'Requires attention', color: '#B91C1C', bg: '#FEE2E2', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
                   { title: 'Completed This Week', value: requests.filter(r => r.status === 'Completed' || r.status === 'Approved').length, icon: <CheckCircle2 size={20} />, trend: 'This week', desc: 'Ready for site', color: '#22C55E', bg: '#DCFCE7', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('Completed'); setFilterDesigner('All'); } }
@@ -1181,7 +1204,7 @@ function App() {
               <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E293B', marginBottom: '16px' }}>Request & Assign Task</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {requests.filter(r => r.status === 'Pending Review').map(r => (
+                  {requests.filter(r => ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).map(r => (
                     <div 
                       key={r.id} 
                       style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', cursor: 'pointer', transition: 'background-color 0.2s' }}
@@ -1203,7 +1226,7 @@ function App() {
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
                           Assigned: 
                           <select 
-                            value={r.assignedDesigner} 
+                            value={(teamMembers.find(m => m._id === r.assignedUserId) ? r.assignedUserId : '')} 
                             onChange={(e) => handleDirectAssignDesigner(r.id, e.target.value)}
                             onClick={(e) => e.stopPropagation()}
                             style={{ 
@@ -1219,9 +1242,9 @@ function App() {
                               cursor: 'pointer'
                             }}
                           >
-                            <option value="Unassigned">Unassigned</option>
-                            {designers.map(d => (
-                              <option key={d.id} value={d.name}>{d.name}</option>
+                            <option value="">{r.assignedDesigner && r.assignedDesigner !== 'Unassigned' && !teamMembers.find(m => m._id === r.assignedUserId) ? `${r.assignedDesigner} (unlinked)` : 'Unassigned'}</option>
+                            {teamMembers.map(m => (
+                              <option key={m._id} value={m._id}>{m.name}{m.designation ? ` — ${m.designation}` : ''}</option>
                             ))}
                           </select>
                         </span>
@@ -1233,7 +1256,7 @@ function App() {
                       </div>
                     </div>
                   ))}
-                  {requests.filter(r => r.status === 'Pending Review').length === 0 && (
+                  {requests.filter(r => ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).length === 0 && (
                     <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No drawing submittals waiting approval.</div>
                   )}
                 </div>
@@ -1362,7 +1385,7 @@ function App() {
                   { title: 'New Requests', val: requests.filter(r => r.status === 'New').length, color: '#2B2E83' },
                   { title: 'Pending Assign', val: requests.filter(r => r.assignedDesigner === 'Unassigned').length, color: '#F59E0B' },
                   { title: 'In Progress', val: requests.filter(r => r.status === 'In Progress').length, color: '#5C6AC4' },
-                  { title: 'Waiting Review', val: requests.filter(r => r.status === 'Pending Review').length, color: '#8B5CF6' },
+                  { title: 'Waiting Review', val: requests.filter(r => ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).length, color: '#8B5CF6' },
                   { title: 'Revision', val: revisionsList.filter(r => r.status === 'Pending' || r.status === 'Urgent').length, color: '#EF4444' },
                   { title: 'Completed', val: requests.filter(r => r.status === 'Completed' || r.status === 'Approved').length, color: '#22C55E' }
                 ].map((s, idx) => (
@@ -1932,7 +1955,7 @@ function App() {
                     </div>
                   </div>
                   <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
-                    {requests.filter(r => r.status === 'Pending Review').length}
+                    {requests.filter(r => ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).length}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginTop: '4px' }}>
                     <span style={{ color: '#7C3AED', fontWeight: 600 }}>Needs approval</span>
@@ -2072,92 +2095,88 @@ function App() {
           )}
 
           {/* TAB 6: REVIEW QUEUE */}
-          {currentTab === 'Review Queue' && (
-            <div>
+          {currentTab === 'Review Queue' && (() => {
+            const SUBMITTED = ['Submitted for Approval', 'Resubmitted', 'Pending Review'];
+            const pending = requests.filter(r => SUBMITTED.includes(r.status));
+            const grabSub = (fileId, name, dl) => fileId ? (dl ? filesApi.download(fileId, name) : filesApi.open(fileId, name)) : notify('No file stored for this submission.');
+            return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1E293B', marginBottom: '16px' }}>Waiting for Design Head Review</h3>
-                
-                <div className="table-wrapper">
-                  <table className="crm-table">
-                    <thead>
-                      <tr>
-                        <th>Request ID</th>
-                        <th>Project Name</th>
-                        <th>File Type</th>
-                        <th>Designer</th>
-                        <th>Version</th>
-                        <th>Attached Files</th>
-                        <th>Submission Details</th>
-                        <th style={{ textAlign: 'center' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {requests.filter(r => r.status === 'Pending Review').map(r => (
-                        <tr key={r.id}>
-                          <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{r.id}</td>
-                          <td style={{ fontWeight: 600 }}>{r.projectName}</td>
-                          <td>
-                            <span className="badge badge-new" style={{ backgroundColor: '#F1F5F9', color: '#475569', fontWeight: 600 }}>
-                              {r.requirement}
-                            </span>
-                          </td>
-                          <td>{r.assignedDesigner}</td>
-                          <td>V1 (Initial Submittal)</td>
-                          <td>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              {r.attachments?.map((a, idx) => (
-                                <a 
-                                  key={idx} 
-                                  href="#" 
-                                  onClick={(e) => { e.preventDefault(); a.fileId ? filesApi.download(a.fileId, a.name) : notify('No file attached.'); }}
-                                  style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'none' }}
-                                >
-                                  {a.name} ({a.size})
-                                </a>
-                              ))}
-                            </div>
-                          </td>
-                          <td style={{ maxWidth: '250px', whiteSpace: 'normal', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            CAD layout complete with anchor positions and standard truss member joints. Load analysis matches 120km/h structural wind rating.
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
-                              <button 
-                                className="btn-secondary" 
-                                style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px', backgroundColor: 'var(--success-light)', color: 'var(--success)', borderColor: 'var(--success-light)' }} 
-                                onClick={() => handleApprove(r)}
-                              >
-                                Approve
-                              </button>
-                              <button 
-                                className="btn-secondary" 
-                                style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px', backgroundColor: 'var(--warning-light)', color: 'var(--warning)', borderColor: 'var(--warning-light)' }} 
-                                onClick={() => handleRequestChanges(r)}
-                              >
-                                Request Changes
-                              </button>
-                              <button 
-                                className="btn-secondary" 
-                                style={{ padding: '4px 8px', fontSize: '0.7rem', width: '110px', backgroundColor: '#FEE2E2', color: '#991B1B', borderColor: '#FEE2E2' }} 
-                                onClick={() => handleReject(r)}
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {requests.filter(r => r.status === 'Pending Review').length === 0 && (
-                        <tr>
-                          <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>All design sets reviewed. Queue is empty.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Pending Design Approvals</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0' }}>Designs submitted by the team, waiting for your review. {pending.length} pending.</p>
               </div>
+
+              {pending.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px' }}>No designs waiting for approval.</div>
+              )}
+
+              {pending.map(r => {
+                const subs = submittalsList.filter(x => x.reqId === r.id);
+                const files = subs.length ? subs.map(x => ({ name: x.fileName, size: x.fileSize, fileId: x.fileId, version: x.version, by: x.submittedBy, date: x.submittedDate })) : (r.attachments || []).map(a => ({ name: a.name, size: a.size, fileId: a.fileId }));
+                const fb = Array.isArray(r.feedback) ? r.feedback : [];
+                const lastRemark = [...fb].reverse().find(f => f.role === 'Design Team');
+                return (
+                  <div key={r.id} style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A' }}>{r.projectName} <span style={{ color: 'var(--primary)' }}>· {r.id}</span>{r.procurementProjectCode ? <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}> · {r.procurementProjectCode}</span> : null}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '3px' }}>
+                          {[r.customerName ? `Client: ${r.customerName}` : '', `Member: ${r.assignedDesigner || '—'}`, r.submittedAt ? `Submitted: ${r.submittedAt}` : '', r.submissionCount ? `Submission #${r.submissionCount}` : ''].filter(Boolean).join('  ·  ')}
+                        </div>
+                      </div>
+                      <div>{getStatusBadge(r.status)}</div>
+                    </div>
+
+                    <div style={{ marginTop: '12px' }}>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '6px' }}>Submitted Files</div>
+                      {files.length === 0 ? <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No files uploaded.</div> : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {files.map((f, idx) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', padding: '7px 10px', border: '1px solid var(--border-color)', borderRadius: '8px', background: '#F8FAFC' }}>
+                              <FileText size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}{f.version ? ` (${f.version})` : ''}{f.size ? ` · ${f.size}` : ''}</span>
+                              {f.by ? <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{f.by}</span> : null}
+                              <button className="btn-reset" style={{ color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.78rem' }} onClick={() => grabSub(f.fileId, f.name, false)}>View</button>
+                              <button className="btn-reset" style={{ color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.78rem' }} onClick={() => grabSub(f.fileId, f.name, true)}>Download</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {lastRemark && lastRemark.text ? (
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '4px' }}>Team Member Remarks</div>
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#334155', whiteSpace: 'pre-wrap' }}>{lastRemark.text}</p>
+                      </div>
+                    ) : null}
+
+                    {fb.length > 0 && (
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '6px' }}>Submission & Feedback History</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {fb.map((f, idx) => (
+                            <div key={idx} style={{ fontSize: '0.78rem', color: '#475569', display: 'flex', gap: '8px', borderLeft: `3px solid ${f.role === 'Design Head' ? 'var(--primary)' : '#94A3B8'}`, paddingLeft: '8px' }}>
+                              <span style={{ fontWeight: 700, color: f.role === 'Design Head' ? 'var(--primary)' : '#334155' }}>{f.action || f.role}</span>
+                              <span style={{ flex: 1 }}>{f.text} <span style={{ color: 'var(--text-muted)' }}>— {f.by}{f.time ? `, ${f.time}` : ''}</span></span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
+                      <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.8rem', fontWeight: 700, backgroundColor: 'var(--success-light)', color: 'var(--success)', borderColor: 'var(--success-light)' }} onClick={() => handleApprove(r)}>Approve</button>
+                      <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.8rem', fontWeight: 700, backgroundColor: 'var(--warning-light)', color: 'var(--warning)', borderColor: 'var(--warning-light)' }} onClick={() => handleRequestChanges(r)}>Request Changes</button>
+                      <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.8rem', fontWeight: 700, backgroundColor: '#FEE2E2', color: '#991B1B', borderColor: '#FEE2E2' }} onClick={() => handleReject(r)}>Reject</button>
+                      <button className="btn-reset" style={{ padding: '8px 12px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)', cursor: 'pointer', marginLeft: 'auto' }} onClick={() => handleOpenDrawer(r)}>Open full request →</button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          )}
+            );
+          })()}
 
           {/* TAB 8: DRAWINGS LIBRARY */}
           {currentTab === 'Team Accounts' && <TeamAccounts />}
@@ -2526,14 +2545,18 @@ function App() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {notifications.length === 0 && (
+                  <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>No notifications yet.</div>
+                )}
                 {notifications.map(notif => (
-                  <div key={notif.id} style={{ display: 'flex', gap: '16px', padding: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: !notif.read ? 'var(--primary-light)' : 'transparent', alignItems: 'center' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: !notif.read ? 'var(--primary)' : 'var(--border-color)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div key={notif.id} onClick={() => handleOpenNotification(notif)} style={{ display: 'flex', gap: '16px', padding: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: !notif.read ? 'var(--primary-light)' : 'transparent', alignItems: 'center', cursor: 'pointer' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: !notif.read ? 'var(--primary)' : 'var(--border-color)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Bell size={20} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1E293B' }}>{notif.title} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>({notif.category})</span></div>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{notif.message}</p>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1E293B' }}>{notif.title} {notif.category ? <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>({notif.category})</span> : null}</div>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{notif.message || notif.desc}</p>
+                      {notif.requestId ? <span style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 600 }}>{notif.requestId} &rarr; open request</span> : null}
                     </div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{notif.time}</span>
                   </div>
@@ -2762,6 +2785,53 @@ function App() {
             </div>
 
             <div className="drawer-body">
+
+              {/* PROJECT DETAILS (auto-fetched from Procurement, read-only) */}
+              {(() => {
+                const pj = drawerProject || {};
+                const val = (x) => (x === 0 || x) ? x : '—';
+                const rows = [
+                  ['Project Name', val(pj.projectName || selectedRequest.projectName)],
+                  ['Project Code', val(pj.projectCode || selectedRequest.procurementProjectCode)],
+                  ['Client', val(pj.client || selectedRequest.customerName)],
+                  ['Location', val(pj.location || selectedRequest.location)],
+                  ['Project Type', val(pj.projectType || selectedRequest.projectType)],
+                  ['Requirement', val(pj.requirement || selectedRequest.requirement || selectedRequest.service)],
+                  ['Priority', val(pj.priority || selectedRequest.priority)],
+                  ['Due Date', val(pj.dueDate || selectedRequest.dueDate)],
+                  ['Requested By', val(pj.requestedBy || selectedRequest.requestedBy)],
+                ];
+                if (pj.projectSize) rows.push(['Project Size', pj.projectSize]);
+                if (pj.materialDescription) rows.push(['Material / Scope', pj.materialDescription]);
+                if (pj.contactDetails) rows.push(['Contact', pj.contactDetails]);
+                if (pj.siteAddress) rows.push(['Site Address', pj.siteAddress]);
+                if (pj.salespersonName) rows.push(['Salesperson', pj.salespersonName]);
+                if (pj.tentativeCompletionDate) rows.push(['Target Completion', pj.tentativeCompletionDate]);
+                return (
+                  <div className="info-section" style={{ marginBottom: '16px', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px', backgroundColor: '#F8FAFC' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <span className="info-section-title" style={{ margin: 0 }}>Project Details</span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: selectedRequest.source === 'procurement' ? '#2563EB' : 'var(--text-muted)' }}>
+                        {drawerProjectLoading ? 'Loading…' : (selectedRequest.source === 'procurement' ? 'From Procurement' : 'Design CRM')}
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px' }}>
+                      {rows.map(([k, v]) => (
+                        <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>{k}</span>
+                          <span style={{ fontSize: '0.82rem', color: '#1E293B', fontWeight: 500, wordBreak: 'break-word' }}>{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedRequest.description && (
+                      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>Description</span>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#334155', whiteSpace: 'pre-wrap' }}>{selectedRequest.description}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {activeDrawerTab === 'Requirements' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -3529,10 +3599,11 @@ function App() {
                   <div className="input-group">
                     <label className="input-label" style={{ fontWeight: 600, fontSize: '0.8rem', display: 'block', marginBottom: '6px' }}>Select Designer</label>
                     <select className="form-control" style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} required>
-                      <option value="">Choose designer...</option>
-                      {designers.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
+                      <option value="">Choose team member...</option>
+                      {teamMembers.map(m => (
+                        <option key={m._id} value={m._id}>{m.name}{m.designation ? ` — ${m.designation}` : ''}</option>
                       ))}
+                      {teamMembers.length === 0 && <option value="" disabled>No team accounts — create one in Team Accounts</option>}
                     </select>
                   </div>
 

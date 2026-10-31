@@ -566,6 +566,8 @@ function App() {
 
   const handleApprove = async (r) => {
     const req = r || selectedRequest; if (!req) return;
+    const ok = await confirmDialog({ title: 'Approve design', message: `Are you sure you want to approve the design for ${req.projectName || req.id}? The approved files will be sent to Procurement.`, confirmText: 'Approve' });
+    if (!ok) return;
     try {
       await requestsApi.approve(req.id);
       await loadData();
@@ -574,7 +576,7 @@ function App() {
   };
   const handleReject = async (r) => {
     const req = r || selectedRequest; if (!req) return;
-    const reason = await promptDialog({ title: 'Reject design', message: 'Why is this design being rejected? The designer will see this reason.', confirmText: 'Reject', danger: true });
+    const reason = await promptDialog({ title: 'Reject design', message: 'Are you sure you want to reject this design? Enter the reason — the team member will see it.', confirmText: 'Reject', danger: true });
     if (reason === null) return;
     try { await requestsApi.reject(req.id, reason); await loadData(); notify('Design rejected.'); }
     catch (e) { notify(e.message || 'Could not reject.'); }
@@ -709,6 +711,17 @@ function App() {
       await loadData();
     } catch (err) { setLoginError(err.message || 'Login failed. Check your email and password.'); }
     finally { setLoginBusy(false); }
+  };
+  const doLogout = async () => {
+    const ok = await confirmDialog({ title: 'Log out', message: 'Are you sure you want to log out?', confirmText: 'Log out', danger: true });
+    if (!ok) return;
+    authApi.logout(); setIsLoggedIn(false); setCurrentTab('Dashboard');
+  };
+  const handleDeleteDocument = async (doc) => {
+    const ok = await confirmDialog({ title: 'Delete document', message: `Delete "${doc.name}"? This cannot be undone.`, confirmText: 'Delete', danger: true });
+    if (!ok) return;
+    try { await documentsApi.remove(doc.id || doc._id); const docs = await documentsApi.list(); setDocumentsList(docs); notify('Document deleted.'); }
+    catch (e) { notify(e.message || 'Could not delete the document.'); }
   };
   const handleSaveSettings = async () => {
     try {
@@ -944,7 +957,7 @@ function App() {
         setRequests={setRequests}
         designers={designers}
         setDesigners={setDesigners}
-        onLogout={() => { authApi.logout(); setIsLoggedIn(false); }}
+        onLogout={doLogout}
         loginEmail={loginEmail}
       />
     );
@@ -1021,7 +1034,7 @@ function App() {
               </div>
             </div>
             <button
-              onClick={() => { authApi.logout(); setIsLoggedIn(false); setCurrentTab('Dashboard'); }}
+              onClick={doLogout}
               title="Logout"
               style={{
                 background: 'none',
@@ -1451,9 +1464,12 @@ function App() {
                           <td>
                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                               <button className="btn-primary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleOpenDrawer(r); }}>View</button>
-                              <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleOpenAssignModal(r); }}>Assign</button>
-                              <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--success-light)', color: 'var(--success)' }} onClick={(e) => { e.stopPropagation(); handleApprove(r); }}>Approve</button>
-                              <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--warning-light)', color: 'var(--warning)' }} onClick={(e) => { e.stopPropagation(); handleOpenRevisionModal(r); }}>Revision</button>
+                              {!['Approved', 'Completed', 'Rejected'].includes(r.status) && (<>
+                                <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleOpenAssignModal(r); }}>Assign</button>
+                                <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--success-light)', color: 'var(--success)' }} onClick={(e) => { e.stopPropagation(); handleApprove(r); }}>Approve</button>
+                                <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--warning-light)', color: 'var(--warning)' }} onClick={(e) => { e.stopPropagation(); handleOpenRevisionModal(r); }}>Revision</button>
+                              </>)}
+                              {r.status === 'Approved' && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--success)' }}>✓ Approved</span>}
                             </div>
                           </td>
                         </tr>
@@ -2423,6 +2439,13 @@ function App() {
                             >
                               <Download size={12} /> Download
                             </button>
+                            <button 
+                              className="btn-secondary" 
+                              style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '8px', backgroundColor: '#FEE2E2', color: '#991B1B', borderColor: '#FECACA' }} 
+                              onClick={() => handleDeleteDocument(doc)}
+                            >
+                              <Trash2 size={12} /> Delete
+                            </button>
                           </td>
                         </tr>
                       );
@@ -2844,593 +2867,8 @@ function App() {
               })()}
 
               {activeDrawerTab === 'Requirements' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* INLINE DESIGN REQUIREMENT FORM */}
-                  <div className="info-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span className="info-section-title" style={{ margin: 0 }}>Design Requirement Form</span>
-                      {/* Tabs */}
-                      <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>
-                        {['Site Dimensions', 'Technical Details'].map(tab => (
-                          <button
-                            key={tab}
-                            type="button"
-                            onClick={() => setReqFormTab(tab)}
-                            style={{
-                              padding: '6px 12px',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              color: reqFormTab === tab ? 'var(--primary)' : 'var(--text-secondary)',
-                              border: 'none',
-                              background: 'none',
-                              borderBottom: reqFormTab === tab ? '2px solid var(--primary)' : '2px solid transparent',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {tab}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
-                      {reqFormTab === 'Site Dimensions' ? (
-                        <>
-                          {/* OVERALL SITE */}
-                          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
-                            <h5 style={{ margin: '0 0 16px 0', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Overall Site</h5>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>PLOT LENGTH</label>
-                                <div style={{ position: 'relative' }}>
-                                  <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    style={{ width: '100%', padding: '8px 30px 8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                    placeholder="Enter length" 
-                                    value={plotLength} 
-                                    onChange={(e) => setPlotLength(e.target.value)} 
-                                  />
-                                  <span style={{ position: 'absolute', right: '10px', top: '9px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ft</span>
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>PLOT WIDTH</label>
-                                <div style={{ position: 'relative' }}>
-                                  <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    style={{ width: '100%', padding: '8px 30px 8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                    placeholder="Enter width" 
-                                    value={plotWidth} 
-                                    onChange={(e) => setPlotWidth(e.target.value)} 
-                                  />
-                                  <span style={{ position: 'absolute', right: '10px', top: '9px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ft</span>
-                                </div>
-                              </div>
-                              <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>TOTAL AREA</label>
-                                <input 
-                                  type="text" 
-                                  className="form-control" 
-                                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', boxSizing: 'border-box' }}
-                                  value={`${(parseFloat(plotLength) || 0) * (parseFloat(plotWidth) || 0)} sq ft`}
-                                  disabled
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* BUILDING AREA */}
-                          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
-                            <h5 style={{ margin: '0 0 16px 0', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Building Area</h5>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>BUILDING LENGTH</label>
-                                <div style={{ position: 'relative' }}>
-                                  <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    style={{ width: '100%', padding: '8px 30px 8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                    placeholder="Enter length" 
-                                    value={plotLength} 
-                                    onChange={(e) => setPlotLength(e.target.value)} 
-                                  />
-                                  <span style={{ position: 'absolute', right: '10px', top: '9px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ft</span>
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>BUILDING WIDTH</label>
-                                <div style={{ position: 'relative' }}>
-                                  <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    style={{ width: '100%', padding: '8px 30px 8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                    placeholder="Enter width" 
-                                    value={plotWidth} 
-                                    onChange={(e) => setPlotWidth(e.target.value)} 
-                                  />
-                                  <span style={{ position: 'absolute', right: '10px', top: '9px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ft</span>
-                                </div>
-                              </div>
-                              <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>BUILDING AREA</label>
-                                <input 
-                                  type="text" 
-                                  className="form-control" 
-                                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', boxSizing: 'border-box' }}
-                                  value={`${(parseFloat(plotLength) || 0) * (parseFloat(plotWidth) || 0)} sq ft`}
-                                  disabled
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* ROOF SLOPE */}
-                          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>ROOF SLOPE</label>
-                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                              {['Flat', '5°', '10°', '15°', '20°', 'Custom', 'Other'].map(opt => (
-                                <button
-                                  key={opt}
-                                  type="button"
-                                  onClick={() => setStructureGrade(opt)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: '#FFFFFF',
-                                    borderRadius: '6px',
-                                    fontWeight: 600,
-                                    fontSize: '0.8rem',
-                                    cursor: 'pointer'
-                                  }}
-                                >{opt}</button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* STRUCTURAL LAYOUT */}
-                          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
-                            <h5 style={{ margin: '0 0 16px 0', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Structural Layout</h5>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>BAY SPACING</label>
-                                <div style={{ position: 'relative' }}>
-                                  <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    style={{ width: '100%', padding: '8px 30px 8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                    placeholder="Enter spacing" 
-                                    value={baySpacing} 
-                                    onChange={(e) => setBaySpacing(e.target.value)} 
-                                  />
-                                  <span style={{ position: 'absolute', right: '10px', top: '9px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ft</span>
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>NUMBER OF COLUMNS</label>
-                                <div style={{ display: 'flex', alignItems: 'center', width: '120px', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
-                                  <button 
-                                    type="button" 
-                                    style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }}
-                                    onClick={() => setNumColumns(prev => Math.max(1, prev - 1))}
-                                  >-</button>
-                                  <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: '0.9rem' }}>{numColumns}</div>
-                                  <button 
-                                    type="button" 
-                                    style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }}
-                                    onClick={() => setNumColumns(prev => prev + 1)}
-                                  >+</button>
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>COLUMN HEIGHT</label>
-                                <div style={{ position: 'relative' }}>
-                                  <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    style={{ width: '100%', padding: '8px 30px 8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                    placeholder="Enter height" 
-                                    value={columnHeight} 
-                                    onChange={(e) => setColumnHeight(e.target.value)} 
-                                  />
-                                  <span style={{ position: 'absolute', right: '10px', top: '9px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ft</span>
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>CRANE PROVISION</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {['Yes', 'No'].map(opt => (
-                                    <button
-                                      key={opt}
-                                      type="button"
-                                      onClick={() => setCraneProvision(opt)}
-                                      style={{
-                                        flex: 1,
-                                        padding: '8px 12px',
-                                        border: craneProvision === opt ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                                        backgroundColor: craneProvision === opt ? 'var(--primary-light)' : '#FFFFFF',
-                                        color: craneProvision === opt ? 'var(--primary)' : 'var(--text-primary)',
-                                        borderRadius: '6px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                      }}
-                                    >{opt}</button>
-                                  ))}
-                                </div>
-                              </div>
-                              <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>MEZZANINE FLOOR</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {['Yes', 'No'].map(opt => (
-                                    <button
-                                      key={opt}
-                                      type="button"
-                                      onClick={() => setMezzanineFloor(opt)}
-                                      style={{
-                                        flex: 1,
-                                        padding: '8px 12px',
-                                        border: mezzanineFloor === opt ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                                        backgroundColor: mezzanineFloor === opt ? 'var(--primary-light)' : '#FFFFFF',
-                                        color: mezzanineFloor === opt ? 'var(--primary)' : 'var(--text-primary)',
-                                        borderRadius: '6px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                      }}
-                                    >{opt}</button>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* SITE CONDITION */}
-                          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
-                            <h5 style={{ margin: '0 0 16px 0', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Site Condition</h5>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>SOIL TYPE</label>
-                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                  {['Normal', 'Soft', 'Hard Rock', 'Other'].map(opt => (
-                                    <button
-                                      key={opt}
-                                      type="button"
-                                      onClick={() => setSoilType(opt)}
-                                      style={{
-                                        padding: '8px 16px',
-                                        border: soilType === opt ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                                        backgroundColor: soilType === opt ? 'var(--primary-light)' : '#FFFFFF',
-                                        color: soilType === opt ? 'var(--primary)' : 'var(--text-primary)',
-                                        borderRadius: '6px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                      }}
-                                    >{opt}</button>
-                                  ))}
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>GROUND LEVEL</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {['Level', 'Sloped', 'Other'].map(opt => {
-                                    const isSelected = (opt === 'Level' && groundLevel === 'Even') || (opt === 'Sloped' && groundLevel === 'Slope') || (opt === 'Other' && groundLevel === 'Uneven');
-                                    return (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={() => setGroundLevel(opt === 'Level' ? 'Even' : opt === 'Sloped' ? 'Slope' : 'Uneven')}
-                                        style={{
-                                          padding: '8px 16px',
-                                          border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                                          backgroundColor: isSelected ? 'var(--primary-light)' : '#FFFFFF',
-                                          color: isSelected ? 'var(--primary)' : 'var(--text-primary)',
-                                          borderRadius: '6px',
-                                          fontWeight: 600,
-                                          cursor: 'pointer',
-                                          transition: 'all 0.2s'
-                                        }}
-                                      >{opt}</button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>FOUNDATION READY?</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {['Yes', 'No'].map(opt => (
-                                    <button
-                                      key={opt}
-                                      type="button"
-                                      onClick={() => setFoundationReady(opt)}
-                                      style={{
-                                        padding: '8px 16px',
-                                        border: foundationReady === opt ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                                        backgroundColor: foundationReady === opt ? 'var(--primary-light)' : '#FFFFFF',
-                                        color: foundationReady === opt ? 'var(--primary)' : 'var(--text-primary)',
-                                        borderRadius: '6px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                      }}
-                                    >{opt}</button>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          {/* SECTION 1 - STRUCTURAL SPECIFICATIONS */}
-                          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
-                            <h5 style={{ margin: '0 0 16px 0', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--primary)' }}>SECTION 1 &mdash; STRUCTURAL SPECIFICATIONS</h5>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>STRUCTURE GRADE</label>
-                                <select 
-                                  className="form-control" 
-                                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                  value={structureGrade} 
-                                  onChange={(e) => setStructureGrade(e.target.value)}
-                                >
-                                  <option value="Standard">Standard</option>
-                                  <option value="High">High Grade</option>
-                                  <option value="Premium">Premium Grade</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>PURLIN TYPE</label>
-                                <select 
-                                  className="form-control" 
-                                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                  value={purlinType} 
-                                  onChange={(e) => setPurlinType(e.target.value)}
-                                >
-                                  <option value="Z Purlin">Z Purlin</option>
-                                  <option value="C Purlin">C Purlin</option>
-                                  <option value="Sigma Purlin">Sigma Purlin</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>WIND SPEED</label>
-                                <div style={{ position: 'relative' }}>
-                                  <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    style={{ width: '100%', padding: '8px 45px 8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                    placeholder="Enter wind speed" 
-                                    value={windSpeed} 
-                                    onChange={(e) => setWindSpeed(e.target.value)} 
-                                  />
-                                  <span style={{ position: 'absolute', right: '10px', top: '9px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>m/s</span>
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>SNOW LOAD</label>
-                                <div style={{ position: 'relative' }}>
-                                  <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    style={{ width: '100%', padding: '8px 55px 8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                    placeholder="Enter snow load" 
-                                    value={snowLoad} 
-                                    onChange={(e) => setSnowLoad(e.target.value)} 
-                                  />
-                                  <span style={{ position: 'absolute', right: '10px', top: '9px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>kN/m²</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* SECTION 2 - ROOFING & CLADDING */}
-                          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
-                            <h5 style={{ margin: '0 0 16px 0', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--primary)' }}>SECTION 2 &mdash; ROOFING & CLADDING</h5>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>ROOFING SHEET TYPE</label>
-                                <select 
-                                  className="form-control" 
-                                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                  value={roofingSheetType} 
-                                  onChange={(e) => setRoofingSheetType(e.target.value)}
-                                >
-                                  <option value="Single Skin">Single Skin Sheet</option>
-                                  <option value="Double Skin PUF">Double Skin PUF Panel</option>
-                                  <option value="Standing Seam">Standing Seam Profile</option>
-                                  <option value="Polycarbonate">Polycarbonate Profile</option>
-                                  <option value="uPVC Sheet">uPVC Profile</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>ROOFING SHEET THICKNESS</label>
-                                <select 
-                                  className="form-control" 
-                                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                  value={roofingSheetThickness} 
-                                  onChange={(e) => setRoofingSheetThickness(e.target.value)}
-                                >
-                                  <option value="0.50 mm">0.50 mm</option>
-                                  <option value="0.60 mm">0.60 mm</option>
-                                  <option value="0.80 mm">0.80 mm</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>WALL CLADDING</label>
-                                <select 
-                                  className="form-control" 
-                                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                  value={wallCladding} 
-                                  onChange={(e) => setWallCladding(e.target.value)}
-                                >
-                                  <option value="PUF Panel">PUF Panel cladding</option>
-                                  <option value="Galvanized Sheet">Galvanized profile cladding</option>
-                                  <option value="Polycarbonate">Polycarbonate translucent cladding</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>GUTTER PROVISION</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {['Yes', 'No'].map(opt => (
-                                    <button
-                                      key={opt}
-                                      type="button"
-                                      onClick={() => setGutterProvision(opt)}
-                                      style={{
-                                        flex: 1,
-                                        padding: '8px 12px',
-                                        border: gutterProvision === opt ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                                        backgroundColor: gutterProvision === opt ? 'var(--primary-light)' : '#FFFFFF',
-                                        color: gutterProvision === opt ? 'var(--primary)' : 'var(--text-primary)',
-                                        borderRadius: '6px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                      }}
-                                    >{opt}</button>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* SECTION 3 - DOORS & WINDOWS */}
-                          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
-                            <h5 style={{ margin: '0 0 16px 0', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--primary)' }}>SECTION 3 &mdash; DOORS & WINDOWS</h5>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>SLIDING DOORS</label>
-                                <div style={{ display: 'flex', alignItems: 'center', width: '120px', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
-                                  <button type="button" style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }} onClick={() => setNumBays(prev => Math.max(0, prev - 1))}>-</button>
-                                  <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: '0.9rem' }}>{numBays}</div>
-                                  <button type="button" style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }} onClick={() => setNumBays(prev => prev + 1)}>+</button>
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>PERSONNEL DOORS</label>
-                                <div style={{ display: 'flex', alignItems: 'center', width: '120px', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
-                                  <button type="button" style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }} onClick={() => setNumColumns(prev => Math.max(0, prev - 1))}>-</button>
-                                  <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: '0.9rem' }}>{numColumns}</div>
-                                  <button type="button" style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }} onClick={() => setNumColumns(prev => prev + 1)}>+</button>
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>WINDOW SIZE</label>
-                                <div style={{ position: 'relative' }}>
-                                  <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    style={{ width: '100%', padding: '8px 30px 8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                                    placeholder="e.g. 4x3" 
-                                    value={baySpacing} 
-                                    onChange={(e) => setBaySpacing(e.target.value)} 
-                                  />
-                                  <span style={{ position: 'absolute', right: '10px', top: '9px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ft</span>
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>NUMBER OF WINDOWS</label>
-                                <div style={{ display: 'flex', alignItems: 'center', width: '120px', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
-                                  <button type="button" style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }} onClick={() => setNumBays(prev => Math.max(0, prev - 1))}>-</button>
-                                  <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: '0.9rem' }}>{numBays}</div>
-                                  <button type="button" style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }} onClick={() => setNumBays(prev => prev + 1)}>+</button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* SECTION 4 - ELECTRICAL & MECHANICAL */}
-                          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
-                            <h5 style={{ margin: '0 0 16px 0', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--primary)' }}>SECTION 4 &mdash; ELECTRICAL & MECHANICAL</h5>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>LIGHTING PROVISION</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {['Yes', 'No'].map(opt => (
-                                    <button
-                                      key={opt}
-                                      type="button"
-                                      onClick={() => setCraneProvision(opt)}
-                                      style={{
-                                        flex: 1,
-                                        padding: '8px 12px',
-                                        border: craneProvision === opt ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                                        backgroundColor: craneProvision === opt ? 'var(--primary-light)' : '#FFFFFF',
-                                        color: craneProvision === opt ? 'var(--primary)' : 'var(--text-primary)',
-                                        borderRadius: '6px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                      }}
-                                    >{opt}</button>
-                                  ))}
-                                </div>
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>EXHAUST FAN</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {['Yes', 'No'].map(opt => (
-                                    <button
-                                      key={opt}
-                                      type="button"
-                                      onClick={() => setMezzanineFloor(opt)}
-                                      style={{
-                                        flex: 1,
-                                        padding: '8px 12px',
-                                        border: mezzanineFloor === opt ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                                        backgroundColor: mezzanineFloor === opt ? 'var(--primary-light)' : '#FFFFFF',
-                                        color: mezzanineFloor === opt ? 'var(--primary)' : 'var(--text-primary)',
-                                        borderRadius: '6px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                      }}
-                                    >{opt}</button>
-                                  ))}
-                                </div>
-                              </div>
-                              <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>POWER SUPPLY</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {['Available', 'Not Available'].map(opt => (
-                                    <button
-                                      key={opt}
-                                      type="button"
-                                      onClick={() => setGutterProvision(opt === 'Available' ? 'Yes' : 'No')}
-                                      style={{
-                                        flex: 1,
-                                        padding: '8px 12px',
-                                        border: (opt === 'Available' && gutterProvision === 'Yes') || (opt === 'Not Available' && gutterProvision === 'No') ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                                        backgroundColor: (opt === 'Available' && gutterProvision === 'Yes') || (opt === 'Not Available' && gutterProvision === 'No') ? 'var(--primary-light)' : '#FFFFFF',
-                                        color: (opt === 'Available' && gutterProvision === 'Yes') || (opt === 'Not Available' && gutterProvision === 'No') ? 'var(--primary)' : 'var(--text-primary)',
-                                        borderRadius: '6px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                      }}
-                                    >{opt}</button>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* REMARKS / SPECIAL REQUIREMENTS */}
-                          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>REMARKS / SPECIAL REQUIREMENTS</label>
-                            <textarea 
-                              className="form-control" 
-                              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
-                              rows="3" 
-                              placeholder="Any special engineering or installation requirements..."
-                            ></textarea>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                <div style={{ padding: '4px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                  The project details for this request are shown above. Use the <strong>Attachments</strong> tab for files, <strong>Comments</strong> to message the team, and the footer actions to assign or review.
                 </div>
               )}
 
@@ -3570,22 +3008,18 @@ function App() {
             </div>
 
             <div className="drawer-footer" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '16px 24px', borderTop: '1px solid var(--border-color)' }}>
-              <button 
-                type="button" 
-                className="btn-primary" 
-                style={{ flex: 1, padding: '10px' }}
-                onClick={() => handleOpenAssignModal(selectedRequest)}
-              >
-                Assign Designer
-              </button>
-              <button 
-                type="button" 
-                className="btn-primary" 
-                style={{ backgroundColor: 'var(--success)', flex: 1, padding: '10px' }} 
-                onClick={() => handleApprove(selectedRequest)}
-              >
-                Approve Design
-              </button>
+              {['Approved', 'Completed'].includes(selectedRequest.status) ? (
+                <div style={{ flex: 1, textAlign: 'center', padding: '10px', color: 'var(--success)', fontWeight: 700, fontSize: '0.9rem' }}>✓ This design has been approved.</div>
+              ) : selectedRequest.status === 'Rejected' ? (
+                <div style={{ flex: 1, textAlign: 'center', padding: '10px', color: 'var(--bad)', fontWeight: 700, fontSize: '0.9rem' }}>This design was rejected.</div>
+              ) : (
+                <>
+                  <button type="button" className="btn-primary" style={{ flex: 1, padding: '10px' }} onClick={() => handleOpenAssignModal(selectedRequest)}>Assign Designer</button>
+                  <button type="button" className="btn-primary" style={{ backgroundColor: 'var(--warning)', flex: 1, padding: '10px' }} onClick={() => handleRequestChanges(selectedRequest)}>Request Changes</button>
+                  <button type="button" className="btn-primary" style={{ backgroundColor: '#DC2626', flex: 1, padding: '10px' }} onClick={() => handleReject(selectedRequest)}>Reject</button>
+                  <button type="button" className="btn-primary" style={{ backgroundColor: 'var(--success)', flex: 1, padding: '10px' }} onClick={() => handleApprove(selectedRequest)}>Approve Design</button>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -197,7 +197,7 @@ export default function DesignTeamDashboard({
       inProgress: assigned.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length,
       pendingReview: assigned.filter(r => r.status === 'Pending Review' || r.status === 'Under Review').length,
       approved: assigned.filter(r => r.status === 'Approved' || r.status === 'Completed').length,
-      revisionNeeded: assigned.filter(r => r.status === 'Revision' || r.status === 'Revision Requested' || r.comments?.some(c => c.sender === 'Design Head')).length,
+      revisionNeeded: assigned.filter(r => ['Revision', 'Revision Requested', 'Changes Requested', 'Rework Required', 'Rejected'].includes(r.status)).length,
       urgentCount: assigned.filter(r => r.priority === 'Urgent').length
     };
   }, [requests, mineReq]);
@@ -965,7 +965,7 @@ export default function DesignTeamDashboard({
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {requests.filter(r => mineReq(r) && (r.status === 'Revision' || r.status === 'Revision Requested' || r.status === 'Changes Requested' || r.status === 'Rework Required' || r.comments?.some(c => c.sender === 'Design Head'))).map(r => (
+                    {requests.filter(r => mineReq(r) && (r.status === 'Revision' || r.status === 'Revision Requested' || r.status === 'Changes Requested' || r.status === 'Rework Required' || r.status === 'Rejected')).map(r => (
                       <div key={r.id} style={{ border: '1px solid #FCA5A5', backgroundColor: '#FEF2F2', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -975,14 +975,14 @@ export default function DesignTeamDashboard({
                             <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#991B1B', margin: 0 }}>{r.projectName}</h3>
                           </div>
                           <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#FEF3C7', color: '#92400E', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <AlertTriangle size={12} /> Revision Request
+                            <AlertTriangle size={12} /> {r.status === 'Rejected' ? 'Rejected' : 'Revision Request'}
                           </span>
                         </div>
 
                         <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #FECACA', fontSize: '0.82rem', color: '#7F1D1D' }}>
-                          <strong>Design Head Comments:</strong>
+                          <strong>{r.status === 'Rejected' ? 'Design Head — Rejected:' : 'Design Head — Changes Requested:'}</strong>
                           <div style={{ marginTop: '4px', fontStyle: 'italic' }}>
-                            "{r.comments?.find(c => c.sender === 'Design Head')?.text || 'Please update member sizing and verify sag rod spacing as per vibration requirements.'}"
+                            "{r.changeRemarks || r.rejectionReason || (Array.isArray(r.feedback) ? [...r.feedback].reverse().find(f => f.role === 'Design Head')?.text : '') || 'See the request for details.'}"
                           </div>
                         </div>
 
@@ -1000,7 +1000,7 @@ export default function DesignTeamDashboard({
                       </div>
                     ))}
 
-                    {requests.filter(r => mineReq(r) && (r.status === 'Revision' || r.status === 'Revision Requested' || r.status === 'Changes Requested' || r.status === 'Rework Required' || r.comments?.some(c => c.sender === 'Design Head'))).length === 0 && (
+                    {requests.filter(r => mineReq(r) && (r.status === 'Revision' || r.status === 'Revision Requested' || r.status === 'Changes Requested' || r.status === 'Rework Required' || r.status === 'Rejected')).length === 0 && (
                       <div style={{ textAlign: 'center', padding: '48px', color: '#64748B' }}>
                         <CheckCircle2 size={32} color="#166534" style={{ marginBottom: '8px' }} />
                         <div style={{ fontWeight: 700, color: '#1E293B' }}>All clear! No pending revision requests from Design Head.</div>
@@ -1030,7 +1030,7 @@ export default function DesignTeamDashboard({
                         </tr>
                       </thead>
                       <tbody>
-                        {requests.filter(r => r.projectType === 'PEB' && (r.status === 'Approved' || r.status === 'Completed')).map(r => (
+                        {requests.filter(r => mineReq(r) && (r.status === 'Approved' || r.status === 'Completed')).map(r => (
                           <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                             <td style={{ padding: '12px' }}>
                               <div style={{ fontWeight: 800, color: '#1E3A8A' }}>{r.id}</div>

@@ -1464,12 +1464,16 @@ function App() {
                           <td>
                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                               <button className="btn-primary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleOpenDrawer(r); }}>View</button>
-                              {!['Approved', 'Completed', 'Rejected'].includes(r.status) && (<>
-                                <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleOpenAssignModal(r); }}>Assign</button>
+                              {['Submitted for Approval', 'Resubmitted', 'Pending Review'].includes(r.status) && (<>
                                 <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--success-light)', color: 'var(--success)' }} onClick={(e) => { e.stopPropagation(); handleApprove(r); }}>Approve</button>
-                                <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--warning-light)', color: 'var(--warning)' }} onClick={(e) => { e.stopPropagation(); handleOpenRevisionModal(r); }}>Revision</button>
+                                <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--warning-light)', color: 'var(--warning)' }} onClick={(e) => { e.stopPropagation(); handleRequestChanges(r); }}>Request Changes</button>
+                                <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: '#FEE2E2', color: '#991B1B' }} onClick={(e) => { e.stopPropagation(); handleReject(r); }}>Reject</button>
                               </>)}
-                              {r.status === 'Approved' && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--success)' }}>✓ Approved</span>}
+                              {['New', 'New Request', 'Assigned', 'In Progress', 'Rejected'].includes(r.status) && (
+                                <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleOpenAssignModal(r); }}>{['Assigned', 'In Progress'].includes(r.status) ? 'Reassign' : 'Assign'}</button>
+                              )}
+                              {['Changes Requested', 'Rework Required', 'Revision Requested'].includes(r.status) && <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#B45309' }}>Awaiting resubmission</span>}
+                              {['Approved', 'Completed'].includes(r.status) && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--success)' }}>✓ Approved</span>}
                             </div>
                           </td>
                         </tr>
@@ -2866,6 +2870,60 @@ function App() {
                 );
               })()}
 
+              {/* SUBMISSION — files, date, remarks + feedback history (once work is submitted) */}
+              {(() => {
+                const st = selectedRequest.status;
+                const SHOW = ['Submitted for Approval', 'Resubmitted', 'Pending Review', 'Approved', 'Completed', 'Changes Requested', 'Rework Required', 'Revision Requested', 'Rejected'];
+                if (!SHOW.includes(st)) return null;
+                const subs = submittalsList.filter(x => x.reqId === selectedRequest.id);
+                const files = subs.length ? subs.map(x => ({ name: x.fileName, size: x.fileSize, fileId: x.fileId, version: x.version, by: x.submittedBy, date: x.submittedDate })) : (selectedRequest.attachments || []).map(a => ({ name: a.name, size: a.size, fileId: a.fileId }));
+                const fb = Array.isArray(selectedRequest.feedback) ? selectedRequest.feedback : [];
+                const lastRemark = [...fb].reverse().find(f => f.role === 'Design Team');
+                const grab = (fileId, name, dl) => fileId ? (dl ? filesApi.download(fileId, name) : filesApi.open(fileId, name)) : notify('No file stored for this submission.');
+                return (
+                  <div className="info-section" style={{ marginBottom: '16px', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px', backgroundColor: '#FFFFFF' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span className="info-section-title" style={{ margin: 0 }}>Submission</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{selectedRequest.submittedAt ? `${selectedRequest.submittedAt}` : ''}{(selectedRequest.submittedBy || selectedRequest.assignedDesigner) ? ` · by ${selectedRequest.submittedBy || selectedRequest.assignedDesigner}` : ''}{selectedRequest.submissionCount ? ` · submission #${selectedRequest.submissionCount}` : ''}</span>
+                    </div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '6px' }}>Submitted Files</div>
+                    {files.length === 0 ? <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No files uploaded yet.</div> : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {files.map((f, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', padding: '7px 10px', border: '1px solid var(--border-color)', borderRadius: '8px', background: '#F8FAFC' }}>
+                            <FileText size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}{f.version ? ` (${f.version})` : ''}{f.size ? ` · ${f.size}` : ''}</span>
+                            <button className="btn-reset" style={{ color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.78rem' }} onClick={() => grab(f.fileId, f.name, false)}>View</button>
+                            <button className="btn-reset" style={{ color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.78rem' }} onClick={() => grab(f.fileId, f.name, true)}>Download</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {lastRemark && lastRemark.text ? (
+                      <div style={{ marginTop: '10px' }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '4px' }}>Team Member Remarks</div>
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#334155', whiteSpace: 'pre-wrap' }}>{lastRemark.text}</p>
+                      </div>
+                    ) : null}
+                    {st === 'Rejected' && selectedRequest.rejectionReason ? <div style={{ marginTop: '10px', color: 'var(--bad)', fontSize: '0.82rem' }}><strong>Rejected:</strong> {selectedRequest.rejectionReason}</div> : null}
+                    {['Changes Requested', 'Rework Required', 'Revision Requested'].includes(st) && selectedRequest.changeRemarks ? <div style={{ marginTop: '10px', color: '#B45309', fontSize: '0.82rem' }}><strong>Changes requested:</strong> {selectedRequest.changeRemarks}</div> : null}
+                    {fb.length > 0 && (
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '6px' }}>Submission & Feedback History</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {fb.map((f, i) => (
+                            <div key={i} style={{ fontSize: '0.78rem', color: '#475569', display: 'flex', gap: '8px', borderLeft: `3px solid ${f.role === 'Design Head' ? 'var(--primary)' : '#94A3B8'}`, paddingLeft: '8px' }}>
+                              <span style={{ fontWeight: 700, color: f.role === 'Design Head' ? 'var(--primary)' : '#334155' }}>{f.action || f.role}</span>
+                              <span style={{ flex: 1 }}>{f.text} <span style={{ color: 'var(--text-muted)' }}>— {f.by}{f.time ? `, ${f.time}` : ''}</span></span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {activeDrawerTab === 'Requirements' && (
                 <div style={{ padding: '4px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                   The project details for this request are shown above. Use the <strong>Attachments</strong> tab for files, <strong>Comments</strong> to message the team, and the footer actions to assign or review.
@@ -3007,19 +3065,40 @@ function App() {
               )}
             </div>
 
-            <div className="drawer-footer" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '16px 24px', borderTop: '1px solid var(--border-color)' }}>
-              {['Approved', 'Completed'].includes(selectedRequest.status) ? (
-                <div style={{ flex: 1, textAlign: 'center', padding: '10px', color: 'var(--success)', fontWeight: 700, fontSize: '0.9rem' }}>✓ This design has been approved.</div>
-              ) : selectedRequest.status === 'Rejected' ? (
-                <div style={{ flex: 1, textAlign: 'center', padding: '10px', color: 'var(--bad)', fontWeight: 700, fontSize: '0.9rem' }}>This design was rejected.</div>
-              ) : (
-                <>
-                  <button type="button" className="btn-primary" style={{ flex: 1, padding: '10px' }} onClick={() => handleOpenAssignModal(selectedRequest)}>Assign Designer</button>
-                  <button type="button" className="btn-primary" style={{ backgroundColor: 'var(--warning)', flex: 1, padding: '10px' }} onClick={() => handleRequestChanges(selectedRequest)}>Request Changes</button>
-                  <button type="button" className="btn-primary" style={{ backgroundColor: '#DC2626', flex: 1, padding: '10px' }} onClick={() => handleReject(selectedRequest)}>Reject</button>
-                  <button type="button" className="btn-primary" style={{ backgroundColor: 'var(--success)', flex: 1, padding: '10px' }} onClick={() => handleApprove(selectedRequest)}>Approve Design</button>
-                </>
-              )}
+            <div className="drawer-footer" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '16px 24px', borderTop: '1px solid var(--border-color)', alignItems: 'center' }}>
+              {(() => {
+                const st = selectedRequest.status;
+                const SUBMITTED = ['Submitted for Approval', 'Resubmitted', 'Pending Review'];
+                const CHANGES = ['Changes Requested', 'Rework Required', 'Revision Requested'];
+                const btn = (bg, label, onClick) => <button type="button" className="btn-primary" style={{ backgroundColor: bg, flex: 1, padding: '10px' }} onClick={onClick}>{label}</button>;
+                // Approved — no actions, just the approval record.
+                if (['Approved', 'Completed'].includes(st)) return (
+                  <div style={{ flex: 1, textAlign: 'center', padding: '10px', color: 'var(--success)', fontWeight: 700, fontSize: '0.9rem' }}>✓ Approved{selectedRequest.approvedBy ? ` by ${selectedRequest.approvedBy}` : ''}{selectedRequest.approvedDate ? ` on ${selectedRequest.approvedDate}` : ''}</div>
+                );
+                // Rejected — allow a fresh assignment.
+                if (st === 'Rejected') return (<>
+                  <div style={{ flex: 2, padding: '10px', color: 'var(--bad)', fontWeight: 700, fontSize: '0.85rem' }}>Rejected{selectedRequest.rejectionReason ? `: ${selectedRequest.rejectionReason}` : ''}</div>
+                  {btn('var(--primary)', 'New Assignment', () => handleOpenAssignModal(selectedRequest))}
+                </>);
+                // Submitted / Resubmitted — review actions.
+                if (SUBMITTED.includes(st)) return (<>
+                  {btn('var(--success)', 'Approve', () => handleApprove(selectedRequest))}
+                  {btn('var(--warning)', 'Request Changes', () => handleRequestChanges(selectedRequest))}
+                  {btn('#DC2626', 'Reject', () => handleReject(selectedRequest))}
+                </>);
+                // Changes requested — waiting for the member to resubmit.
+                if (CHANGES.includes(st)) return (<>
+                  <div style={{ flex: 2, padding: '10px', color: '#B45309', fontWeight: 600, fontSize: '0.85rem' }}>Changes requested — waiting for the team member to upload revised files and resubmit.</div>
+                  {btn('var(--primary)', 'Reassign', () => handleOpenAssignModal(selectedRequest))}
+                </>);
+                // Assigned / In Progress — not submitted yet; show assignee + allow reassign.
+                if (['Assigned', 'In Progress'].includes(st)) return (<>
+                  <div style={{ flex: 2, padding: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Assigned to <strong style={{ color: 'var(--text-primary)' }}>{selectedRequest.assignedDesigner || '—'}</strong>{selectedRequest.dueDate ? ` · due ${selectedRequest.dueDate}` : ''}. Awaiting submission.</div>
+                  {btn('var(--primary)', 'Reassign Designer', () => handleOpenAssignModal(selectedRequest))}
+                </>);
+                // New / unassigned — only assign.
+                return btn('var(--primary)', 'Assign Designer', () => handleOpenAssignModal(selectedRequest));
+              })()}
             </div>
           </div>
         </div>

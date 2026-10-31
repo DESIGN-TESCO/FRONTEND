@@ -1942,6 +1942,16 @@ function App() {
                 (() => {
                   const des = designers.find(d => d.name === selectedDesignerName);
                   if (!des) return <p>Designer not found</p>;
+                  // Match this person's requests even if the roster name and the login
+                  // account name differ slightly (e.g. "Yasar Arafath" vs "Yasar Arafath A").
+                  const sameName = (a) => { a = (a || '').toLowerCase().trim(); const n = des.name.toLowerCase().trim(); return !!n && (a === n || a.startsWith(n) || n.startsWith(a)); };
+                  const mine = requests.filter(r => sameName(r.assignedDesigner));
+                  const ACTIVE_ST = ['Assigned', 'In Progress', 'Submitted for Approval', 'Resubmitted', 'Changes Requested', 'Rework Required', 'Pending Review', 'Revision Requested'];
+                  const activeList = mine.filter(r => ACTIVE_ST.includes(r.status));
+                  const completedList = mine.filter(r => ['Approved', 'Completed'].includes(r.status));
+                  const pendingReviewList = mine.filter(r => ['Submitted for Approval', 'Resubmitted', 'Pending Review'].includes(r.status));
+                  const revisionList = mine.filter(r => ['Changes Requested', 'Rework Required', 'Rejected', 'Revision Requested'].includes(r.status));
+                  const revisionRate = mine.length ? Math.round((revisionList.length / mine.length) * 100) + '%' : '0%';
                   return (
                     <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '20px' }}>
@@ -1961,29 +1971,26 @@ function App() {
                           <div>
                             <strong>Experience:</strong> {des.experience}
                           </div>
-                          <div>
-                            <strong>Capacity Status:</strong> {des.workload}% workload ({des.availableCapacity} left)
-                          </div>
                         </div>
 
                         <div>
                           <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '12px' }}>Performance Analytics</h4>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
                             <div style={{ padding: '10px', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px' }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Avg. completion time</span>
-                              <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{des.avgCompletionTime}</div>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Active Assignments</span>
+                              <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{activeList.length}</div>
                             </div>
                             <div style={{ padding: '10px', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px' }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Completed Projects</span>
-                              <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{des.completedProjects}</div>
-                            </div>
-                            <div style={{ padding: '10px', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px' }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Revision Rate</span>
-                              <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{des.revisionRate}</div>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Completed Assignments</span>
+                              <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{completedList.length}</div>
                             </div>
                             <div style={{ padding: '10px', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px' }}>
                               <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Pending Review</span>
-                              <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{des.pendingReview}</div>
+                              <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{pendingReviewList.length}</div>
+                            </div>
+                            <div style={{ padding: '10px', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Revision Rate</span>
+                              <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{revisionRate}</div>
                             </div>
                           </div>
 
@@ -2001,7 +2008,7 @@ function App() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {requests.filter(r => r.assignedDesigner === des.name).map(r => (
+                                {activeList.map(r => (
                                   <tr key={r.id}>
                                     <td style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--primary)' }}>{r.id}</td>
                                     <td style={{ padding: '10px 12px', fontWeight: 600 }}>{r.projectName}</td>
@@ -2013,10 +2020,39 @@ function App() {
                                     <td style={{ padding: '10px 12px' }}>{getStatusBadge(r.status)}</td>
                                   </tr>
                                 ))}
-                                {requests.filter(r => r.assignedDesigner === des.name).length === 0 && (
+                                {activeList.length === 0 && (
                                   <tr>
                                     <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>No active assignments.</td>
                                   </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '20px 0 8px' }}>Completed Assignments</h4>
+                          <div className="table-wrapper" style={{ border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
+                            <table className="crm-table" style={{ fontSize: '0.75rem' }}>
+                              <thead>
+                                <tr style={{ backgroundColor: '#F8FAFC' }}>
+                                  <th style={{ padding: '10px 12px' }}>Project ID</th>
+                                  <th style={{ padding: '10px 12px' }}>Project Name</th>
+                                  <th style={{ padding: '10px 12px' }}>Type</th>
+                                  <th style={{ padding: '10px 12px' }}>Approved On</th>
+                                  <th style={{ padding: '10px 12px' }}>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {completedList.map(r => (
+                                  <tr key={r.id}>
+                                    <td style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--primary)' }}>{r.id}</td>
+                                    <td style={{ padding: '10px 12px', fontWeight: 600 }}>{r.projectName}</td>
+                                    <td style={{ padding: '10px 12px' }}>{r.projectType}</td>
+                                    <td style={{ padding: '10px 12px' }}>{r.approvedDate || '\u2014'}</td>
+                                    <td style={{ padding: '10px 12px' }}>{getStatusBadge(r.status)}</td>
+                                  </tr>
+                                ))}
+                                {completedList.length === 0 && (
+                                  <tr><td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>No completed assignments yet.</td></tr>
                                 )}
                               </tbody>
                             </table>

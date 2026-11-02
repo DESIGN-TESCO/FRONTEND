@@ -737,15 +737,27 @@ function App() {
   const [creatingReq, setCreatingReq] = useState(false);
   const blankReq = () => ({ customerName: '', projectName: '', projectType: 'PEB', service: '', requirement: '2D + 3D', priority: 'Medium', requestedBy: '', leadId: '', dueDate: '', location: '', budget: '', timeline: '' });
   const [newReq, setNewReq] = useState(blankReq());
+  const [newReqFiles, setNewReqFiles] = useState([]);
   const setNR = (k, v) => setNewReq(prev => ({ ...prev, [k]: v }));
   const handleCreateRequest = async (e) => {
     e.preventDefault();
     if (!newReq.projectName.trim() || !newReq.customerName.trim()) { notify('Enter the customer and project name.'); return; }
     setCreatingReq(true);
     try {
-      await requestsApi.create({ ...newReq, assignedDesigner: 'Unassigned', status: 'New', deliverables: [],
+      const created = await requestsApi.create({ ...newReq, assignedDesigner: 'Unassigned', status: 'New', deliverables: [],
         history: [{ title: 'Request created', time: new Date().toISOString().slice(0, 16).replace('T', ' '), desc: 'Created in Design CRM' }] });
-      setIsNewReqOpen(false); setNewReq(blankReq()); await loadData();
+      // Upload the attached documents and link them to the new request (stored in
+      // design_files; the attachments live on the request so they follow it through
+      // assignment, reassignment and every status, visible to the assigned member).
+      if (created && created.id && newReqFiles.length) {
+        for (const f of newReqFiles) {
+          try {
+            const up = await filesApi.upload(f, { entity: 'request', entityId: created.id, uploadedBy: settingsFullName || 'Design Head' });
+            await requestsApi.addAttachment(created.id, { name: f.name, size: `${(f.size / 1024 / 1024).toFixed(1)} MB`, type: f.type || '', fileId: up.fileId });
+          } catch (e2) { notify(`Request created, but "${f.name}" could not be attached: ${e2.message}`); }
+        }
+      }
+      setIsNewReqOpen(false); setNewReq(blankReq()); setNewReqFiles([]); await loadData();
     } catch (err) { notify(err.message || 'Could not create request.'); }
     finally { setCreatingReq(false); }
   };
@@ -1409,9 +1421,29 @@ function App() {
                       <label style={labelStyle}>Location<input style={fieldStyle} value={newReq.location} onChange={(e) => setNR('location', e.target.value)} /></label>
                       <label style={labelStyle}>Budget<input style={fieldStyle} placeholder="$48,000" value={newReq.budget} onChange={(e) => setNR('budget', e.target.value)} /></label>
                       <label style={labelStyle}>Timeline<input style={fieldStyle} placeholder="3 Weeks" value={newReq.timeline} onChange={(e) => setNR('timeline', e.target.value)} /></label>
+                      <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Attachments / Documents</span>
+                        <label className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', width: 'fit-content' }}>
+                          <FileText size={14} /> Choose Files
+                          <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.dwg,.dxf,.zip" style={{ display: 'none' }} onChange={(e) => { const picked = Array.from(e.target.files || []); e.target.value = ''; if (picked.length) setNewReqFiles(prev => [...prev, ...picked]); }} />
+                        </label>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>PDF, Word, Excel, JPG, PNG, DWG and more. Uploaded with the request and shared with the assigned team member.</span>
+                        {newReqFiles.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '2px' }}>
+                            {newReqFiles.map((f, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '6px 10px', background: '#F8FAFC' }}>
+                                <FileText size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{(f.size / 1024 / 1024).toFixed(1)} MB</span>
+                                <button type="button" className="btn-reset" style={{ color: '#DC2626', fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }} onClick={() => setNewReqFiles(prev => prev.filter((_, idx) => idx !== i))}>Remove</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
-                      <button type="button" className="btn-secondary" onClick={() => setIsNewReqOpen(false)}>Cancel</button>
+                      <button type="button" className="btn-secondary" onClick={() => { setIsNewReqOpen(false); setNewReqFiles([]); }}>Cancel</button>
                       <button type="submit" className="btn-primary" disabled={creatingReq}>{creatingReq ? 'Creating…' : 'Create Request'}</button>
                     </div>
                   </form>

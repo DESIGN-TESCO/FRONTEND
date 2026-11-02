@@ -60,6 +60,10 @@ import {
 // Seed data removed — all data now loads from the backend API.
 
 const getLeadId = (r) => (r && r.leadId && r.leadId !== 'N/A') ? r.leadId : 'N/A';
+// Request category — 'Sales Team' / 'Project Team'. Procurement-raised requests are
+// Project Team by default; a stored requestFrom always wins.
+const catOf = (r) => (r && r.requestFrom) ? r.requestFrom : (r && r.source === 'procurement' ? 'Project Team' : '');
+const reqDateOf = (r) => (r && (r.createdAt ? String(r.createdAt).slice(0, 10) : '')) || '';
 
 // Format a real timestamp as "31 Oct 2026, 1:17 PM" (falls back to any stored label).
 const fmtDateTime = (iso, fallback = '') => {
@@ -103,6 +107,8 @@ function App() {
   const [filterRequirement, setFilterRequirement] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [filterCategory, setFilterCategory] = useState('All');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDesigner, setFilterDesigner] = useState('All');
   const [filterSalesManager, setFilterSalesManager] = useState('All');
   const [filterDateRange, setFilterDateRange] = useState('All');
@@ -735,13 +741,14 @@ function App() {
 
   const [isNewReqOpen, setIsNewReqOpen] = useState(false);
   const [creatingReq, setCreatingReq] = useState(false);
-  const blankReq = () => ({ customerName: '', projectName: '', projectType: 'PEB', service: '', requirement: '2D + 3D', priority: 'Medium', requestedBy: '', leadId: '', dueDate: '', location: '', budget: '', timeline: '' });
+  const blankReq = () => ({ requestFrom: '', customerName: '', projectName: '', projectType: 'PEB', service: '', requirement: '2D + 3D', priority: 'Medium', requestedBy: '', leadId: '', dueDate: '', location: '', budget: '', timeline: '' });
   const [newReq, setNewReq] = useState(blankReq());
   const [newReqFiles, setNewReqFiles] = useState([]);
   const setNR = (k, v) => setNewReq(prev => ({ ...prev, [k]: v }));
   const handleCreateRequest = async (e) => {
     e.preventDefault();
     if (!newReq.projectName.trim() || !newReq.customerName.trim()) { notify('Enter the customer and project name.'); return; }
+    if (!newReq.requestFrom) { notify('Select who the request is from (Sales Team or Project Team).'); return; }
     setCreatingReq(true);
     try {
       const created = await requestsApi.create({ ...newReq, assignedDesigner: 'Unassigned', status: 'New', deliverables: [],
@@ -821,7 +828,11 @@ function App() {
         (r.customerName || '').toLowerCase().includes(q) ||
         (r.id || '').toLowerCase().includes(q) ||
         (r.procurementProjectCode || '').toLowerCase().includes(q) ||
+        (r.assignedDesigner || '').toLowerCase().includes(q) ||
+        (catOf(r) || '').toLowerCase().includes(q) ||
         (r.requestedBy || '').toLowerCase().includes(q);
+      const matchCategory = filterCategory === 'All' || catOf(r) === filterCategory;
+      const matchDate = !filterDateFrom || reqDateOf(r) >= filterDateFrom;
 
       const matchType = filterType === 'All' || r.projectType === filterType;
       const matchReq = filterRequirement === 'All' || r.requirement === filterRequirement;
@@ -830,9 +841,9 @@ function App() {
       const matchDesigner = filterDesigner === 'All' || r.assignedDesigner === filterDesigner;
       const matchSM = filterSalesManager === 'All' || (r.requestedBy || '').includes(filterSalesManager);
 
-      return matchSearch && matchType && matchReq && matchPriority && matchStatus && matchDesigner && matchSM;
+      return matchSearch && matchType && matchReq && matchPriority && matchStatus && matchDesigner && matchSM && matchCategory && matchDate;
     });
-  }, [requests, searchText, filterType, filterRequirement, filterPriority, filterStatus, filterDesigner, filterSalesManager]);
+  }, [requests, searchText, filterType, filterRequirement, filterPriority, filterStatus, filterDesigner, filterSalesManager, filterCategory, filterDateFrom]);
 
   const getStatusBadge = (status) => {
     const styleMap = {
@@ -1009,7 +1020,7 @@ function App() {
                   }
                   if (item.id === 'Design Requests') {
                     setFilterStatus('All'); setFilterDesigner('All'); setFilterType('All');
-                    setFilterRequirement('All'); setFilterPriority('All'); setFilterSalesManager('All'); setSearchText('');
+                    setFilterRequirement('All'); setFilterPriority('All'); setFilterSalesManager('All'); setSearchText(''); setFilterCategory('All'); setFilterDateFrom('');
                   }
                 }}
                 style={{
@@ -1397,8 +1408,24 @@ function App() {
 
 
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600 }} onClick={() => setIsNewReqOpen(true)}><UserPlus size={16} /> New Request</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '16px', backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px 14px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Request From:</span>
+                {['All', 'Sales Team', 'Project Team'].map(c => (
+                  <button key={c} type="button" onClick={() => setFilterCategory(c)} style={{ padding: '6px 12px', borderRadius: '20px', border: '1px solid ' + (filterCategory === c ? 'var(--primary)' : 'var(--border-color)'), backgroundColor: filterCategory === c ? 'var(--primary)' : '#FFFFFF', color: filterCategory === c ? '#FFFFFF' : 'var(--text-secondary)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>{c}</button>
+                ))}
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.8rem', color: '#1E293B' }}>
+                  {['All', 'New', 'Assigned', 'In Progress', 'Submitted for Approval', 'Resubmitted', 'Changes Requested', 'Approved', 'Rejected'].map(o => <option key={o} value={o}>{o === 'All' ? 'All statuses' : o}</option>)}
+                </select>
+                <select value={filterDesigner} onChange={(e) => setFilterDesigner(e.target.value)} style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.8rem', color: '#1E293B' }}>
+                  <option value="All">All members</option>
+                  <option value="Unassigned">Unassigned</option>
+                  {teamMembers.map(m => <option key={m._id} value={m.name}>{m.name}</option>)}
+                </select>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>From<input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.8rem' }} /></label>
+                {(filterCategory !== 'All' || filterStatus !== 'All' || filterDesigner !== 'All' || filterDateFrom) && (
+                  <button type="button" onClick={() => { setFilterCategory('All'); setFilterStatus('All'); setFilterDesigner('All'); setFilterDateFrom(''); }} style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #FECACA', backgroundColor: '#FEF2F2', color: '#991B1B', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer' }}>Clear</button>
+                )}
+                <button className="btn-primary" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600 }} onClick={() => setIsNewReqOpen(true)}><UserPlus size={16} /> New Request</button>
               </div>
 
               {isNewReqOpen && (
@@ -1409,6 +1436,13 @@ function App() {
                       <button type="button" onClick={() => setIsNewReqOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <label style={{ ...labelStyle, gridColumn: '1 / -1' }}>Request From *
+                        <select style={fieldStyle} value={newReq.requestFrom} onChange={(e) => setNR('requestFrom', e.target.value)}>
+                          <option value="">Select…</option>
+                          <option value="Sales Team">Sales Team</option>
+                          <option value="Project Team">Project Team</option>
+                        </select>
+                      </label>
                       <label style={labelStyle}>Customer Name *<input style={fieldStyle} value={newReq.customerName} onChange={(e) => setNR('customerName', e.target.value)} /></label>
                       <label style={labelStyle}>Project Name *<input style={fieldStyle} value={newReq.projectName} onChange={(e) => setNR('projectName', e.target.value)} /></label>
                       <label style={labelStyle}>Project Type<select style={fieldStyle} value={newReq.projectType} onChange={(e) => setNR('projectType', e.target.value)}>{['PEB', 'Mangalore Tile Roofing', 'Glass Roofing', 'Other'].map(o => <option key={o}>{o}</option>)}</select></label>
@@ -1461,6 +1495,7 @@ function App() {
                         <th>Project Type</th>
                         <th>Design Type</th>
                         <th>Requested By</th>
+                        <th>Request From</th>
                         <th>Assigned Designer</th>
                         <th>Priority</th>
                         <th>Due Date</th>
@@ -1480,6 +1515,7 @@ function App() {
                             </span>
                           </td>
                           <td>{r.requestedBy}</td>
+                          <td>{catOf(r) ? <span className="badge" style={{ padding: '3px 9px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 700, backgroundColor: catOf(r) === 'Sales Team' ? '#E0E7FF' : '#DCFCE7', color: catOf(r) === 'Sales Team' ? '#3730A3' : '#166534' }}>{catOf(r)}</span> : <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>}</td>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <span style={{ fontSize: '0.8rem' }}>{r.assignedDesigner}</span>
@@ -2866,6 +2902,7 @@ function App() {
                   ['Location', val(pj.location || selectedRequest.location)],
                   ['Project Type', val(pj.projectType || selectedRequest.projectType)],
                   ['Requirement', val(pj.requirement || selectedRequest.requirement || selectedRequest.service)],
+                  ['Request From', val(catOf(selectedRequest))],
                   ['Priority', val(pj.priority || selectedRequest.priority)],
                   ['Due Date', val(pj.dueDate || selectedRequest.dueDate)],
                   ['Requested By', val(pj.requestedBy || selectedRequest.requestedBy)],

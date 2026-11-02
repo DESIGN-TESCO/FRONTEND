@@ -1264,6 +1264,7 @@ export default function DesignTeamDashboard({
                 ['Location', val(pj.location || selectedReqForDetail.location)],
                 ['Project Type', val(pj.projectType || selectedReqForDetail.projectType)],
                 ['Requirement', val(pj.requirement || selectedReqForDetail.requirement || selectedReqForDetail.service)],
+                ['Request From', val(selectedReqForDetail.requestFrom || (selectedReqForDetail.source === 'procurement' ? 'Project Team' : ''))],
                 ['Priority', val(pj.priority || selectedReqForDetail.priority)],
                 ['Due Date', val(pj.dueDate || selectedReqForDetail.dueDate)],
               ];

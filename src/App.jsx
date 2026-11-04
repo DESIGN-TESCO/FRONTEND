@@ -1491,6 +1491,7 @@ function App() {
                     <thead>
                       <tr>
                         <th>Request ID</th>
+                        <th>Project / Client</th>
                         <th>Lead ID</th>
                         <th>Project Type</th>
                         <th>Design Type</th>
@@ -1507,6 +1508,7 @@ function App() {
                       {filteredRequests.map(r => (
                         <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => handleOpenDrawer(r)}>
                           <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{r.id}</td>
+                          <td><div style={{ fontWeight: 700, color: '#1E293B' }}>{r.projectName || '—'}</div>{r.customerName ? <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{r.customerName}</div> : null}</td>
                           <td style={{ color: '#4F46E5', fontWeight: 600 }}>{getLeadId(r)}</td>
                           <td style={{ fontWeight: 600 }}>{r.projectType}</td>
                           <td>

@@ -1217,52 +1217,36 @@ function App() {
                   {requests.filter(r => ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).map(r => (
                     <div 
                       key={r.id} 
-                      style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                      style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px 16px', display: 'grid', gridTemplateColumns: '92px minmax(150px, 1.6fr) 72px minmax(150px, 1.3fr) 250px 110px auto', alignItems: 'center', gap: '12px', cursor: 'pointer', transition: 'background-color 0.2s' }}
                       onClick={() => handleOpenDrawer(r)}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.85rem' }}>{r.id}</span>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1E293B' }}>{r.projectName}</div>
-                        <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{r.projectType}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.85rem' }}>{r.id}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.projectName || '—'}</div>
+                        {r.customerName ? <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.customerName}</div> : null}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                        {r.projectManager ? (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Project Manager: <strong>{r.projectManager}</strong></span>
-                        ) : (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Sales Manager: <strong>{r.salesManager || r.requestedBy?.replace(' (Sales Manager)', '') || 'Ritesh Deshmukh'}</strong></span>
-                        )}
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                          Assigned: 
-                          <select 
-                            value={(teamMembers.find(m => m._id === r.assignedUserId) ? r.assignedUserId : '')} 
-                            onChange={(e) => handleDirectAssignDesigner(r.id, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ 
-                              marginLeft: '6px', 
-                              padding: '2px 6px', 
-                              borderRadius: '4px', 
-                              border: '1px solid var(--border-color)',
-                              backgroundColor: '#FFFFFF',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              color: '#1E293B',
-                              outline: 'none',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <option value="">{r.assignedDesigner && r.assignedDesigner !== 'Unassigned' && !teamMembers.find(m => m._id === r.assignedUserId) ? `${r.assignedDesigner} (unlinked)` : 'Unassigned'}</option>
-                            {teamMembers.map(m => (
-                              <option key={m._id} value={m._id}>{m.name}{m.designation ? ` — ${m.designation}` : ''}</option>
-                            ))}
-                          </select>
-                        </span>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Due: {r.dueDate}</span>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button className="badge badge-completed" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); handleApprove(r); }}>Approve</button>
-                          <button className="badge badge-urgent" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); handleReject(r); }}>Reject</button>
-                        </div>
+                      <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', justifySelf: 'start' }}>{r.projectType}</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.projectManager ? <>Project Manager: <strong>{r.projectManager}</strong></> : <>Sales Manager: <strong>{r.salesManager || r.requestedBy?.replace(' (Sales Manager)', '') || '—'}</strong></>}</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                        Assigned:
+                        <select 
+                          value={(teamMembers.find(m => m._id === r.assignedUserId) ? r.assignedUserId : '')} 
+                          onChange={(e) => handleDirectAssignDesigner(r.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ flex: 1, minWidth: 0, padding: '3px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: '#FFFFFF', fontSize: '0.78rem', fontWeight: 600, color: '#1E293B', outline: 'none', cursor: 'pointer' }}
+                        >
+                          <option value="">{r.assignedDesigner && r.assignedDesigner !== 'Unassigned' && !teamMembers.find(m => m._id === r.assignedUserId) ? `${r.assignedDesigner} (unlinked)` : 'Unassigned'}</option>
+                          {teamMembers.map(m => (
+                            <option key={m._id} value={m._id}>{m.name}{m.designation ? ` — ${m.designation}` : ''}</option>
+                          ))}
+                        </select>
+                      </span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Due: {r.dueDate || '—'}</span>
+                      <div style={{ display: 'flex', gap: '8px', justifySelf: 'end' }}>
+                        <button className="badge badge-completed" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); handleApprove(r); }}>Approve</button>
+                        <button className="badge badge-urgent" style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600 }} onClick={(e) => { e.stopPropagation(); handleReject(r); }}>Reject</button>
                       </div>
                     </div>
                   ))}
@@ -1283,6 +1267,7 @@ function App() {
                     <thead>
                       <tr>
                         <th>Request ID</th>
+                        <th>Project / Client</th>
                         <th>Project Type</th>
                         <th>Lead ID</th>
                         <th>Design Type</th>
@@ -1297,6 +1282,7 @@ function App() {
                       {requests.map(r => (
                         <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => handleOpenDrawer(r)}>
                           <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{r.id}</td>
+                          <td><div style={{ fontWeight: 700, color: '#1E293B' }}>{r.projectName || '—'}</div>{r.customerName ? <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{r.customerName}</div> : null}</td>
                           <td>
                             <div className="project-meta-cell">
                               <span className="project-name-text" style={{ fontSize: '0.85rem' }}>{r.projectType}</span>

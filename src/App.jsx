@@ -2167,7 +2167,11 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {designers.map(d => (
+                        {designers.map(d => {
+                          const sameName = (a) => { a = (a || '').toLowerCase().trim(); const n = (d.name || '').toLowerCase().trim(); return !!n && (a === n || a.startsWith(n) || n.startsWith(a)); };
+                          const mine = requests.filter(r => sameName(r.assignedDesigner));
+                          const ACT = ['Assigned','In Progress','Submitted for Approval','Resubmitted','Changes Requested','Rework Required','Pending Review','Revision Requested'];
+                          return (
                           <tr key={d.id}>
                             <td>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2176,17 +2180,18 @@ function App() {
                               </div>
                             </td>
                             <td>{d.role}</td>
-                            <td>{(() => { const m = requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim()); const A = ['Assigned','In Progress','Submitted for Approval','Resubmitted','Changes Requested','Rework Required','Pending Review','Revision Requested']; return m.filter(r => A.includes(r.status)).length; })()} Active</td>
-                            <td>{requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim() && ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).length}</td>
-                            <td>{requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim() && ['Changes Requested','Rework Required','Revision Requested'].includes(r.status)).length}</td>
-                            <td>{requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim() && ['Approved','Completed'].includes(r.status)).length}</td>
+                            <td>{mine.filter(r => ACT.includes(r.status)).length} Active</td>
+                            <td>{mine.filter(r => ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).length}</td>
+                            <td>{mine.filter(r => ['Changes Requested','Rework Required','Revision Requested'].includes(r.status)).length}</td>
+                            <td>{mine.filter(r => ['Approved','Completed'].includes(r.status)).length}</td>
                              <td style={{ textAlign: 'center' }}>
                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                                  <button className="btn-primary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={() => setSelectedDesignerName(d.name)}>View</button>
                                </div>
                              </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

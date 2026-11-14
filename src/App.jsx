@@ -1961,7 +1961,7 @@ function App() {
                 </div>
               )}
               {/* Top summary cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
                 {/* Card 1: Pending Assignment */}
                 <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px 20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -2010,6 +2010,23 @@ function App() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginTop: '4px' }}>
                     <span style={{ color: '#7C3AED', fontWeight: 600 }}>Needs approval</span>
                     <span style={{ color: 'var(--text-muted)' }}>Drawing submittals</span>
+                  </div>
+                </div>
+
+                {/* Card 4: Completed */}
+                <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px 20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Completed</span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <CheckCircle2 size={16} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
+                    {requests.filter(r => ['Approved','Completed'].includes(r.status)).length}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginTop: '4px' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 600 }}>Delivered</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Approved drawings</span>
                   </div>
                 </div>
               </div>
@@ -2145,6 +2162,7 @@ function App() {
                           <th>Current Tasks</th>
                           <th>Pending Review</th>
                           <th>Revisions</th>
+                          <th>Completed</th>
                           <th style={{ textAlign: 'center' }}>Action</th>
                         </tr>
                       </thead>
@@ -2161,6 +2179,7 @@ function App() {
                             <td>{(() => { const m = requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim()); const A = ['Assigned','In Progress','Submitted for Approval','Resubmitted','Changes Requested','Rework Required','Pending Review','Revision Requested']; return m.filter(r => A.includes(r.status)).length; })()} Active</td>
                             <td>{requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim() && ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).length}</td>
                             <td>{requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim() && ['Changes Requested','Rework Required','Revision Requested'].includes(r.status)).length}</td>
+                            <td>{requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim() && ['Approved','Completed'].includes(r.status)).length}</td>
                              <td style={{ textAlign: 'center' }}>
                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                                  <button className="btn-primary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={() => setSelectedDesignerName(d.name)}>View</button>

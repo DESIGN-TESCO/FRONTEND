@@ -1098,7 +1098,7 @@ function App() {
                 value={searchText}
                 onChange={(e) => {
                   setSearchText(e.target.value);
-                  if (currentTab !== 'Design Requests' && currentTab !== 'Dashboard' && currentTab !== 'Projects') {
+                  if (e.target.value && currentTab !== 'Design Requests') {
                     setCurrentTab('Design Requests');
                   }
                 }}
@@ -2051,7 +2051,7 @@ function App() {
 
                         <div>
                           <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '12px' }}>Performance Analytics</h4>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
                             <div style={{ padding: '10px', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px' }}>
                               <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Active Assignments</span>
                               <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{activeList.length}</div>
@@ -2063,10 +2063,6 @@ function App() {
                             <div style={{ padding: '10px', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px' }}>
                               <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Pending Review</span>
                               <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{pendingReviewList.length}</div>
-                            </div>
-                            <div style={{ padding: '10px', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px' }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Revision Rate</span>
-                              <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{revisionRate}</div>
                             </div>
                           </div>
 
@@ -2162,9 +2158,9 @@ function App() {
                               </div>
                             </td>
                             <td>{d.role}</td>
-                            <td>{d.currentTasks} Active</td>
-                            <td>{d.pendingReview}</td>
-                            <td>{d.revisions}</td>
+                            <td>{(() => { const m = requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim()); const A = ['Assigned','In Progress','Submitted for Approval','Resubmitted','Changes Requested','Rework Required','Pending Review','Revision Requested']; return m.filter(r => A.includes(r.status)).length; })()} Active</td>
+                            <td>{requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim() && ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).length}</td>
+                            <td>{requests.filter(r => r.assignedDesigner && d.name && r.assignedDesigner.toLowerCase().trim() === d.name.toLowerCase().trim() && ['Changes Requested','Rework Required','Revision Requested'].includes(r.status)).length}</td>
                              <td style={{ textAlign: 'center' }}>
                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                                  <button className="btn-primary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={() => setSelectedDesignerName(d.name)}>View</button>

@@ -745,6 +745,42 @@ function App() {
   const [newReq, setNewReq] = useState(blankReq());
   const [newReqFiles, setNewReqFiles] = useState([]);
   const setNR = (k, v) => setNewReq(prev => ({ ...prev, [k]: v }));
+
+  // ── Edit an existing design request (Design Head only) ──
+  const [editReqOpen, setEditReqOpen] = useState(false);
+  const [editReqId, setEditReqId] = useState('');
+  const [editReq, setEditReq] = useState({ ...blankReq(), description: '', instructions: '' });
+  const [editExisting, setEditExisting] = useState([]);   // existing attachments on the request
+  const [editRemoveIds, setEditRemoveIds] = useState([]); // fileIds marked for removal
+  const [editNewFiles, setEditNewFiles] = useState([]);   // newly picked File objects
+  const [savingEdit, setSavingEdit] = useState(false);
+  const setER = (k, v) => setEditReq(prev => ({ ...prev, [k]: v }));
+  const openEditRequest = (r) => {
+    setEditReqId(r.id);
+    setEditReq({ requestFrom: r.requestFrom || '', customerName: r.customerName || '', projectName: r.projectName || '', projectType: r.projectType || 'PEB', service: r.service || '', requirement: r.requirement || '2D + 3D', priority: r.priority || 'Medium', requestedBy: r.requestedBy || '', leadId: r.leadId || '', dueDate: r.dueDate || '', location: r.location || '', budget: r.budget || '', timeline: r.timeline || '', description: r.description || '', instructions: r.instructions || '' });
+    setEditExisting(Array.isArray(r.attachments) ? r.attachments : []);
+    setEditRemoveIds([]); setEditNewFiles([]);
+    setEditReqOpen(true);
+  };
+  const toggleRemoveExisting = (fileId) => setEditRemoveIds(prev => prev.includes(fileId) ? prev.filter(x => x !== fileId) : [...prev, fileId]);
+  const handleEditRequest = async (e) => {
+    e.preventDefault();
+    if (!editReq.projectName.trim() || !editReq.customerName.trim()) { notify('Enter the customer and project name.'); return; }
+    setSavingEdit(true);
+    try {
+      const addAttachments = [];
+      for (const f of editNewFiles) {
+        try {
+          const up = await filesApi.upload(f, { entity: 'request', entityId: editReqId, uploadedBy: settingsFullName || 'Design Head' });
+          addAttachments.push({ name: f.name, size: `${(f.size / 1024 / 1024).toFixed(1)} MB`, type: f.type || '', fileId: up.fileId });
+        } catch (e2) { notify(`"${f.name}" could not be uploaded: ${e2.message}`); }
+      }
+      await requestsApi.editRequest(editReqId, { ...editReq, addAttachments, removeFileIds: editRemoveIds });
+      setEditReqOpen(false); setEditNewFiles([]); setEditRemoveIds([]); await loadData();
+      notify('Request updated.');
+    } catch (err) { notify(err.message || 'Could not update request.'); }
+    finally { setSavingEdit(false); }
+  };
   const handleCreateRequest = async (e) => {
     e.preventDefault();
     if (!newReq.projectName.trim() || !newReq.customerName.trim()) { notify('Enter the customer and project name.'); return; }
@@ -1470,6 +1506,78 @@ function App() {
                 </div>
               )}
 
+              {editReqOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '16px' }} onClick={() => setEditReqOpen(false)}>
+                  <form onClick={(e) => e.stopPropagation()} onSubmit={handleEditRequest} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '24px', width: '620px', maxWidth: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Edit Design Request</h3>
+                      <button type="button" onClick={() => setEditReqOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                    </div>
+                    <p style={{ margin: '0 0 16px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{editReqId} · changes update the existing request and are shared with the assigned team member.</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <label style={{ ...labelStyle, gridColumn: '1 / -1' }}>Request From *
+                        <select style={fieldStyle} value={editReq.requestFrom} onChange={(e) => setER('requestFrom', e.target.value)}>
+                          <option value="">Select…</option>
+                          <option value="Sales Team">Sales Team</option>
+                          <option value="Project Team">Project Team</option>
+                        </select>
+                      </label>
+                      <label style={labelStyle}>Customer Name *<input style={fieldStyle} value={editReq.customerName} onChange={(e) => setER('customerName', e.target.value)} /></label>
+                      <label style={labelStyle}>Project Name *<input style={fieldStyle} value={editReq.projectName} onChange={(e) => setER('projectName', e.target.value)} /></label>
+                      <label style={labelStyle}>Project Type<select style={fieldStyle} value={editReq.projectType} onChange={(e) => setER('projectType', e.target.value)}>{['PEB', 'Mangalore Tile Roofing', 'Glass Roofing', 'Other'].map(o => <option key={o}>{o}</option>)}</select></label>
+                      <label style={labelStyle}>Design Type<select style={fieldStyle} value={editReq.requirement} onChange={(e) => setER('requirement', e.target.value)}>{['2D + 3D', '2D Drawing', '3D Render', 'BOQ', '2D Layout + 3D Model', '2D Layouts + BOQ'].map(o => <option key={o}>{o}</option>)}</select></label>
+                      <label style={labelStyle}>Service / Scope<input style={fieldStyle} value={editReq.service} onChange={(e) => setER('service', e.target.value)} /></label>
+                      <label style={labelStyle}>Priority<select style={fieldStyle} value={editReq.priority} onChange={(e) => setER('priority', e.target.value)}>{['Urgent', 'High', 'Medium', 'Normal', 'Low'].map(o => <option key={o}>{o}</option>)}</select></label>
+                      <label style={labelStyle}>Requested By<input style={fieldStyle} placeholder="Name (Role)" value={editReq.requestedBy} onChange={(e) => setER('requestedBy', e.target.value)} /></label>
+                      <label style={labelStyle}>Lead ID<input style={fieldStyle} placeholder="LD-1001" value={editReq.leadId} onChange={(e) => setER('leadId', e.target.value)} /></label>
+                      <label style={labelStyle}>Due Date<input type="date" style={fieldStyle} value={editReq.dueDate} onChange={(e) => setER('dueDate', e.target.value)} /></label>
+                      <label style={labelStyle}>Location<input style={fieldStyle} value={editReq.location} onChange={(e) => setER('location', e.target.value)} /></label>
+                      <label style={labelStyle}>Budget<input style={fieldStyle} placeholder="$48,000" value={editReq.budget} onChange={(e) => setER('budget', e.target.value)} /></label>
+                      <label style={labelStyle}>Timeline<input style={fieldStyle} placeholder="3 Weeks" value={editReq.timeline} onChange={(e) => setER('timeline', e.target.value)} /></label>
+                      <label style={{ ...labelStyle, gridColumn: '1 / -1' }}>Description<textarea style={{ ...fieldStyle, minHeight: '64px', resize: 'vertical' }} value={editReq.description} onChange={(e) => setER('description', e.target.value)} placeholder="Describe the design requirement" /></label>
+                      <label style={{ ...labelStyle, gridColumn: '1 / -1' }}>Instructions<textarea style={{ ...fieldStyle, minHeight: '64px', resize: 'vertical' }} value={editReq.instructions} onChange={(e) => setER('instructions', e.target.value)} placeholder="Special instructions for the designer" /></label>
+                      <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Attachments / Documents</span>
+                        {editExisting.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {editExisting.map((f, i) => { const marked = f.fileId && editRemoveIds.includes(f.fileId); return (
+                              <div key={f.fileId || i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '6px 10px', background: marked ? '#FEF2F2' : '#F8FAFC', opacity: marked ? 0.7 : 1 }}>
+                                <FileText size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: marked ? 'line-through' : 'none' }}>{f.name}</span>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{f.size}</span>
+                                {f.fileId && <button type="button" className="btn-reset" style={{ color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.72rem', whiteSpace: 'nowrap' }} onClick={() => f.fileId && filesApi.open(f.fileId, f.name)}>View</button>}
+                                <button type="button" className="btn-reset" style={{ color: marked ? 'var(--primary)' : '#DC2626', fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => f.fileId ? toggleRemoveExisting(f.fileId) : null}>{marked ? 'Undo' : 'Remove'}</button>
+                              </div>
+                            ); })}
+                          </div>
+                        )}
+                        <label className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', width: 'fit-content' }}>
+                          <FileText size={14} /> Add Files
+                          <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.dwg,.dxf,.zip" style={{ display: 'none' }} onChange={(e) => { const picked = Array.from(e.target.files || []); e.target.value = ''; if (picked.length) setEditNewFiles(prev => [...prev, ...picked]); }} />
+                        </label>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>PDF, Word, Excel, JPG, PNG, DWG and more. New files are added to the request and shared with the assigned member.</span>
+                        {editNewFiles.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '2px' }}>
+                            {editNewFiles.map((f, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', border: '1px solid #BBF7D0', borderRadius: '8px', padding: '6px 10px', background: '#F0FDF4' }}>
+                                <FileText size={14} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{(f.size / 1024 / 1024).toFixed(1)} MB</span>
+                                <button type="button" className="btn-reset" style={{ color: '#DC2626', fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }} onClick={() => setEditNewFiles(prev => prev.filter((_, idx) => idx !== i))}>Remove</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+                      <button type="button" className="btn-secondary" onClick={() => setEditReqOpen(false)}>Cancel</button>
+                      <button type="submit" className="btn-primary" disabled={savingEdit}>{savingEdit ? 'Saving…' : 'Save Changes'}</button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
               {/* Large searchable table */}
               <div className="table-card" style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
                 <div className="table-wrapper">
@@ -1520,6 +1628,7 @@ function App() {
                           <td>
                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                               <button className="btn-primary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); handleOpenDrawer(r); }}>View</button>
+                              <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem' }} onClick={(e) => { e.stopPropagation(); openEditRequest(r); }}>Edit</button>
                               {['Submitted for Approval', 'Resubmitted', 'Pending Review'].includes(r.status) && (<>
                                 <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--success-light)', color: 'var(--success)' }} onClick={(e) => { e.stopPropagation(); handleApprove(r); }}>Approve</button>
                                 <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.7rem', backgroundColor: 'var(--warning-light)', color: 'var(--warning)' }} onClick={(e) => { e.stopPropagation(); handleRequestChanges(r); }}>Request Changes</button>

@@ -82,6 +82,7 @@ export const requestsApi = {
   addComment: (id, payload) => api(`/requests/${encodeURIComponent(id)}/comments`, { method: 'POST', body: payload }),
   saveRequirement: (id, payload) => api(`/requests/${encodeURIComponent(id)}/requirement`, { method: 'PUT', body: payload }),
   addAttachment: (id, payload) => api(`/requests/${encodeURIComponent(id)}/attachments`, { method: 'POST', body: payload }),
+  editRequest: (id, payload) => api(`/requests/${encodeURIComponent(id)}/edit`, { method: 'PUT', body: payload || {} }),
   approve: (id, feedback) => api(`/requests/${encodeURIComponent(id)}/approve`, { method: 'POST', body: { feedback: feedback || '' } }),
   reject: (id, reason) => api(`/requests/${encodeURIComponent(id)}/reject`, { method: 'POST', body: { reason } }),
   requestChanges: (id, remarks) => api(`/requests/${encodeURIComponent(id)}/request-changes`, { method: 'POST', body: { remarks } }),

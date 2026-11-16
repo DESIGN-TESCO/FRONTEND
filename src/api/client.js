@@ -133,8 +133,28 @@ const readAsBase64 = (file) => new Promise((resolve, reject) => {
 export const filesApi = {
   // Upload a File object; returns { fileId, name, type, size }.
   upload: async (file, { entity = '', entityId = '', uploadedBy = '' } = {}) => {
-    const dataBase64 = await readAsBase64(file);
-    return api('/files', { method: 'POST', body: { entity, entityId, name: file.name, type: file.type || '', size: file.size, uploadedBy, dataBase64 } });
+    // Stream the raw file straight to the backend (no base64) so large files upload
+    // reliably and never exhaust server memory. Falls back to the base64 endpoint only
+    // if the streaming route is unavailable (older backend).
+    const qs = new URLSearchParams({ entity: entity || '', entityId: entityId || '', uploadedBy: uploadedBy || '', name: file.name, type: file.type || '' }).toString();
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/files/stream?${qs}`, {
+        method: 'POST',
+        headers: { ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}), 'Content-Type': 'application/octet-stream' }, // octet-stream so the JSON body parser never intercepts the file
+        body: file,
+      });
+    } catch (e) {
+      throw new Error('Cannot reach the server. Please check your connection and that the backend is running.');
+    }
+    if (res.status === 404) {
+      // Backend without the streaming route — use the original base64 upload.
+      const dataBase64 = await readAsBase64(file);
+      return api('/files', { method: 'POST', body: { entity, entityId, name: file.name, type: file.type || '', size: file.size, uploadedBy, dataBase64 } });
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || data.error || `Upload failed (${res.status})`);
+    return data;
   },
   list: (entity, entityId) => api(`/files?${new URLSearchParams({ ...(entity ? { entity } : {}), ...(entityId ? { entityId } : {}) })}`),
   url: (fileId, { download = false } = {}) => `${API_BASE}/files/${encodeURIComponent(fileId)}${download ? '?download=1' : ''}`,

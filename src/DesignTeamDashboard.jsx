@@ -410,7 +410,7 @@ export default function DesignTeamDashboard({
                   fontSize: '0.85rem',
                   fontWeight: currentTab === item.id ? 700 : 500,
                   transition: 'all 0.2s',
-                  backgroundColor: currentTab === item.id ? 'rgba(255,255,255,0.18)' : 'transparent',
+                  backgroundColor: currentTab === item.id ? '#4F46E5' : 'transparent',
                   color: currentTab === item.id ? '#FFFFFF' : 'rgba(255,255,255,0.8)'
                 }}
               >

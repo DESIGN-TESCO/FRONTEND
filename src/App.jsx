@@ -1069,7 +1069,7 @@ function App() {
                   fontSize: '0.85rem',
                   fontWeight: 500,
                   transition: 'background-color 0.2s',
-                  backgroundColor: currentTab === item.id ? 'rgba(255,255,255,0.15)' : 'transparent',
+                  backgroundColor: currentTab === item.id ? '#4F46E5' : 'transparent',
                   color: currentTab === item.id ? '#FFFFFF' : 'rgba(255,255,255,0.8)'
                 }}
               >
@@ -1083,7 +1083,7 @@ function App() {
          {/* Profile Card in Sidebar Footer */}
         <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'rgba(255,255,255,0.06)', padding: '10px', borderRadius: '8px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: loginRole === 'Design Head' ? '#5C6AC4' : '#10B981', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.8rem' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: loginRole === 'Design Head' ? '#4F46E5' : '#10B981', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.8rem' }}>
               {loginRole === 'Design Head' ? 'DH' : 'DT'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1198,7 +1198,7 @@ function App() {
                 {[
                   { title: 'New Design Requests', value: requests.filter(r => r.status === 'New').length, icon: <Inbox size={20} />, trend: 'Awaiting triage', desc: 'From sales team', color: '#2B2E83', bg: '#EEF2F6', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('New'); setFilterDesigner('All'); } },
                   { title: 'Pending Assignment', value: requests.filter(r => r.assignedDesigner === 'Unassigned').length, icon: <UserPlus size={20} />, trend: 'Allocating', desc: 'Needs designer', color: '#F59E0B', bg: '#FEF3C7', onClick: () => { setCurrentTab('Design Requests'); setFilterDesigner('Unassigned'); setFilterStatus('All'); } },
-                  { title: 'Active Projects', value: requests.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length, icon: <Clock size={20} />, trend: 'Active drawing', desc: 'In production', color: '#5C6AC4', bg: '#E0E7FF', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
+                  { title: 'Active Projects', value: requests.filter(r => r.status === 'In Progress' || r.status === 'Assigned').length, icon: <Clock size={20} />, trend: 'Active drawing', desc: 'In production', color: '#4F46E5', bg: '#E0E7FF', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
                   { title: 'Pending Review', value: requests.filter(r => ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).length, icon: <AlertTriangle size={20} />, trend: 'Needs approval', desc: 'Drawing submittals', color: '#8B5CF6', bg: '#F3E8FF', onClick: () => { setCurrentTab('Review Queue'); } },
                   { title: 'Client Revisions', value: revisionsList.filter(r => r.status === 'Pending' || r.status === 'Urgent').length, icon: <MessageSquare size={20} />, trend: 'Active cycles', desc: 'Review adjustments', color: '#EF4444', bg: '#FEE2E2', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
                   { title: 'Overdue Tasks', value: requests.filter(r => ['Assigned', 'In Progress'].includes(r.status) && r.dueDate && new Date(r.dueDate) < new Date()).length, icon: <AlertCircle size={20} />, trend: 'Overdue SLA', desc: 'Requires attention', color: '#B91C1C', bg: '#FEE2E2', onClick: () => { setCurrentTab('Design Requests'); setFilterStatus('In Progress'); setFilterDesigner('All'); } },
@@ -1416,7 +1416,7 @@ function App() {
                 {[
                   { title: 'New Requests', val: requests.filter(r => r.status === 'New').length, color: '#2B2E83' },
                   { title: 'Pending Assign', val: requests.filter(r => r.assignedDesigner === 'Unassigned').length, color: '#F59E0B' },
-                  { title: 'In Progress', val: requests.filter(r => r.status === 'In Progress').length, color: '#5C6AC4' },
+                  { title: 'In Progress', val: requests.filter(r => r.status === 'In Progress').length, color: '#4F46E5' },
                   { title: 'Waiting Review', val: requests.filter(r => ['Submitted for Approval','Resubmitted','Pending Review'].includes(r.status)).length, color: '#8B5CF6' },
                   { title: 'Revision', val: revisionsList.filter(r => r.status === 'Pending' || r.status === 'Urgent').length, color: '#EF4444' },
                   { title: 'Completed', val: requests.filter(r => r.status === 'Completed' || r.status === 'Approved').length, color: '#22C55E' }

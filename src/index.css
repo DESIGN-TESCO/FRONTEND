@@ -6,7 +6,7 @@
   --bg-tertiary: #F1F5F9;
   
   --border-color: #E2E8F0;
-  --border-focus: #1E1B4B;
+  --border-focus: #4F46E5;
   
   --text-primary: #1E293B; /* Main text */
   --text-secondary: #64748B; /* Muted text */
@@ -16,22 +16,22 @@
   --font-sans: 'Inter', sans-serif;
   --font-heading: 'Poppins', sans-serif;
   
-  /* Enterprise Colors */
-  --primary: #1E1B4B; /* Very Dark Indigo / Navy */
-  --primary-hover: #312E81; /* Slightly lighter indigo for hovers */
-  --primary-light: #E0E7FF;
-  --secondary: #312E81;
-  
-  --success: #22C55E;
+  /* Enterprise Colors — matched to the Execution & Sales Portal theme */
+  --primary: #4F46E5; /* Indigo accent (Execution/Sales --accent) */
+  --primary-hover: #4338CA; /* --accent-d */
+  --primary-light: #EEF2FF; /* --accent-l */
+  --secondary: #312E81; /* navy-2 */
+
+  --success: #16A34A;
   --success-light: #DCFCE7;
-  
-  --warning: #F59E0B;
+
+  --warning: #D97706;
   --warning-light: #FEF3C7;
-  
-  --danger: #EF4444;
+
+  --danger: #DC2626;
   --danger-light: #FEE2E2;
 
-  --accent-purple: #8B5CF6;
+  --accent-purple: #7C3AED;
   --accent-purple-light: #F3E8FF;
   
   --radius-sm: 6px;

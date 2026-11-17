@@ -1025,7 +1025,7 @@ function App() {
   return (
     <div className="app-layout" style={{ fontFamily: 'var(--font-sans)', display: 'flex', minHeight: '100vh', backgroundColor: '#F8FAFC' }}>
       {/* LEFT SIDEBAR */}
-      <aside className="sidebar" style={{ width: '260px', backgroundColor: '#312E81', color: '#FFFFFF', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+      <aside className="sidebar" style={{ width: '260px', backgroundColor: '#1E1B4B', color: '#FFFFFF', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         <div className="sidebar-logo" style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/tescologo.png" alt="Tesco Structures" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></div>
           <div>

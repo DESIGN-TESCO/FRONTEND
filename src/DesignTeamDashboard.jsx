@@ -374,7 +374,7 @@ export default function DesignTeamDashboard({
     <div className="app-layout" style={{ fontFamily: 'var(--font-sans)', display: 'flex', minHeight: '100vh', backgroundColor: '#F8FAFC', width: '100vw' }}>
       
       {/* SIDEBAR */}
-      <aside className="sidebar" style={{ width: '270px', minWidth: '270px', backgroundColor: '#312E81', color: '#FFFFFF', display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <aside className="sidebar" style={{ width: '270px', minWidth: '270px', backgroundColor: '#1E1B4B', color: '#FFFFFF', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         
         {/* Logo Header */}
         <div className="sidebar-logo" style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>

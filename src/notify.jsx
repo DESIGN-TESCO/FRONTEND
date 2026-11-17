@@ -57,7 +57,7 @@ export function promptDialog(opts) {
 const TONE = {
   success: { bar: '#16a34a', bg: '#F0FDF4', icon: <CheckCircle2 size={18} color="#16a34a" /> },
   error: { bar: '#dc2626', bg: '#FEF2F2', icon: <AlertCircle size={18} color="#dc2626" /> },
-  info: { bar: '#2563eb', bg: '#EFF6FF', icon: <Info size={18} color="#2563eb" /> },
+  info: { bar: '#4F46E5', bg: '#EEF2FF', icon: <Info size={18} color="#4F46E5" /> },
 };
 
 function ToastItem({ t }) {
@@ -94,7 +94,7 @@ function NotifyHost() {
           onMouseDown={(e) => { if (e.target === e.currentTarget) close(d.kind === 'confirm' ? false : null); }}>
           <div style={{ background: '#FFFFFF', borderRadius: 14, padding: '22px 24px', width: 420, maxWidth: '100%', boxShadow: '0 20px 50px rgba(15,23,42,0.3)', animation: 'notifyPop .18s ease-out' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              {danger ? <AlertTriangle size={20} color="#dc2626" /> : <Info size={20} color="#2563eb" />}
+              {danger ? <AlertTriangle size={20} color="#dc2626" /> : <Info size={20} color="#4F46E5" />}
               <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0F172A' }}>{d.title || (d.kind === 'confirm' ? 'Please confirm' : 'Enter a value')}</h3>
             </div>
             {d.message && <p style={{ margin: '0 0 14px', fontSize: 13.8, color: '#475569', lineHeight: 1.5 }}>{d.message}</p>}

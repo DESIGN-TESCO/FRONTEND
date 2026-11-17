@@ -1025,7 +1025,7 @@ function App() {
   return (
     <div className="app-layout" style={{ fontFamily: 'var(--font-sans)', display: 'flex', minHeight: '100vh', backgroundColor: '#F8FAFC' }}>
       {/* LEFT SIDEBAR */}
-      <aside className="sidebar" style={{ width: '260px', backgroundColor: '#34328C', color: '#FFFFFF', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+      <aside className="sidebar" style={{ width: '260px', backgroundColor: '#312E81', color: '#FFFFFF', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         <div className="sidebar-logo" style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><img src="/tescologo.png" alt="Tesco Structures" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></div>
           <div>
@@ -1391,7 +1391,7 @@ function App() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '200px', overflowY: 'auto' }}>
                     {activities.map(act => (
                       <div key={act.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', paddingBottom: '10px', borderBottom: '1px solid var(--border-color)' }}>
-                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#EEF2F6', color: '#34328C', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#EEF2F6', color: '#312E81', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>
                           {act.user.split(' ').map(n=>n[0]).join('')}
                         </div>
                         <div style={{ flex: 1 }}>
@@ -1659,7 +1659,7 @@ function App() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px' }}>
                 {[
                   { title: 'Pending', val: 1, color: '#F59E0B' },
-                  { title: 'Preparing', val: boqList.filter(b => b.status === 'Preparing').length, color: '#3B82F6' },
+                  { title: 'Preparing', val: boqList.filter(b => b.status === 'Preparing').length, color: '#6366F1' },
                   { title: 'Waiting Approval', val: boqList.filter(b => b.status === 'Waiting Approval').length, color: '#8B5CF6' },
                   { title: 'Approved', val: boqList.filter(b => b.status === 'Approved').length, color: '#22C55E' },
                   { title: 'Completed', val: 1, color: '#1E293B' }
@@ -2092,7 +2092,7 @@ function App() {
                 <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px 20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Active Projects</span>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#DBEAFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#E0E7FF', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Clock size={16} />
                     </div>
                   </div>
@@ -2100,7 +2100,7 @@ function App() {
                     {requests.filter(r => r.status === 'In Progress').length}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginTop: '4px' }}>
-                    <span style={{ color: '#2563EB', fontWeight: 600 }}>Active drawing</span>
+                    <span style={{ color: '#4F46E5', fontWeight: 600 }}>Active drawing</span>
                     <span style={{ color: 'var(--text-muted)' }}>In production</span>
                   </div>
                 </div>
@@ -2166,7 +2166,7 @@ function App() {
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
                         <div style={{ borderRight: '1px solid var(--border-color)', paddingRight: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                          <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#34328C', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 700 }}>{des.avatar}</div>
+                          <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#312E81', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 700 }}>{des.avatar}</div>
                           <div>
                             <strong>Role:</strong> {des.role}
                           </div>
@@ -2551,7 +2551,7 @@ function App() {
                       const fileExt = doc.name.split('.').pop()?.toUpperCase() || 'FILE';
                       const getBadgeColor = (ext) => {
                         if (ext === 'PDF') return { bg: '#FEE2E2', text: '#991B1B', border: '#FCA5A5' };
-                        if (ext === 'DWG' || ext === 'DXF') return { bg: '#DBEAFE', text: '#1E40AF', border: '#93C5FD' };
+                        if (ext === 'DWG' || ext === 'DXF') return { bg: '#E0E7FF', text: '#3730A3', border: '#A5B4FC' };
                         if (ext === 'ZIP' || ext === 'RAR') return { bg: '#FEF3C7', text: '#92400E', border: '#FCD34D' };
                         return { bg: '#F1F5F9', text: '#475569', border: '#CBD5E1' };
                       };
@@ -2593,8 +2593,8 @@ function App() {
                                 width: '24px', 
                                 height: '24px', 
                                 borderRadius: '50%', 
-                                backgroundColor: '#EFF6FF', 
-                                color: '#2563EB', 
+                                backgroundColor: '#EEF2FF', 
+                                color: '#4F46E5', 
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 justifyContent: 'center', 
@@ -3034,7 +3034,7 @@ function App() {
                   <div className="info-section" style={{ marginBottom: '16px', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px', backgroundColor: '#F8FAFC' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                       <span className="info-section-title" style={{ margin: 0 }}>Project Details</span>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: selectedRequest.source === 'procurement' ? '#2563EB' : 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: selectedRequest.source === 'procurement' ? '#4F46E5' : 'var(--text-muted)' }}>
                         {drawerProjectLoading ? 'Loading…' : (selectedRequest.source === 'procurement' ? 'From Procurement' : 'Design CRM')}
                       </span>
                     </div>

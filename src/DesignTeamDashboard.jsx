@@ -206,7 +206,7 @@ export default function DesignTeamDashboard({
   const renderStatusBadge = (status) => {
     switch (status) {
       case 'In Progress':
-        return <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#DBEAFE', color: '#1E40AF', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Clock size={12} /> In Production</span>;
+        return <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#E0E7FF', color: '#3730A3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Clock size={12} /> In Production</span>;
       case 'Assigned':
         return <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#E0E7FF', color: '#3730A3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Inbox size={12} /> Assigned from Head</span>;
       case 'Pending Review':
@@ -374,7 +374,7 @@ export default function DesignTeamDashboard({
     <div className="app-layout" style={{ fontFamily: 'var(--font-sans)', display: 'flex', minHeight: '100vh', backgroundColor: '#F8FAFC', width: '100vw' }}>
       
       {/* SIDEBAR */}
-      <aside className="sidebar" style={{ width: '270px', minWidth: '270px', backgroundColor: '#34328C', color: '#FFFFFF', display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <aside className="sidebar" style={{ width: '270px', minWidth: '270px', backgroundColor: '#312E81', color: '#FFFFFF', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         
         {/* Logo Header */}
         <div className="sidebar-logo" style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -424,7 +424,7 @@ export default function DesignTeamDashboard({
                     borderRadius: '10px',
                     fontSize: '0.7rem',
                     fontWeight: 700,
-                    backgroundColor: item.id === 'Head Revisions' ? '#EF4444' : '#3B82F6',
+                    backgroundColor: item.id === 'Head Revisions' ? '#EF4444' : '#6366F1',
                     color: '#FFFFFF'
                   }}>
                     {item.badge}
@@ -471,7 +471,7 @@ export default function DesignTeamDashboard({
               {currentTab === 'Notifications' && 'Notifications'}
             </h1>
             <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '2px 0 0 0' }}>
-              Tesco Structures Design Workspace &bull; Logged in as <strong style={{ color: '#1E3A8A' }}>{myName || 'Design Team'}{me.designation ? ` · ${me.designation}` : ''}</strong>
+              Tesco Structures Design Workspace &bull; Logged in as <strong style={{ color: '#312E81' }}>{myName || 'Design Team'}{me.designation ? ` · ${me.designation}` : ''}</strong>
             </p>
           </div>
 
@@ -492,13 +492,13 @@ export default function DesignTeamDashboard({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: showNotificationsPopover ? '#EFF6FF' : '#FFFFFF',
+                  backgroundColor: showNotificationsPopover ? '#EEF2FF' : '#FFFFFF',
                   cursor: 'pointer',
                   position: 'relative',
                   transition: 'all 0.2s'
                 }}
               >
-                <Bell size={18} color={showNotificationsPopover ? '#2563EB' : '#475569'} />
+                <Bell size={18} color={showNotificationsPopover ? '#4F46E5' : '#475569'} />
                 {visibleNotifications.filter(n => !n.read).length > 0 && (
                   <span style={{ position: 'absolute', top: '-3px', right: '-3px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', backgroundColor: '#EF4444', border: '2px solid #FFFFFF', color: '#FFFFFF', fontSize: '0.6rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{visibleNotifications.filter(n => !n.read).length}</span>
                 )}
@@ -531,7 +531,7 @@ export default function DesignTeamDashboard({
                     <button
                       type="button"
                       onClick={() => { notificationsApi.markAllRead('team'); setTeamNotifications(teamNotifications.map(n => ({ ...n, read: true }))); }}
-                      style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
+                      style={{ background: 'none', border: 'none', color: '#4F46E5', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
                     >
                       Mark all read
                     </button>
@@ -546,7 +546,7 @@ export default function DesignTeamDashboard({
                         style={{
                           padding: '12px 16px',
                           borderBottom: '1px solid #F1F5F9',
-                          backgroundColor: notif.read ? '#FFFFFF' : '#EFF6FF',
+                          backgroundColor: notif.read ? '#FFFFFF' : '#EEF2FF',
                           cursor: 'pointer',
                           display: 'flex',
                           flexDirection: 'column',
@@ -555,7 +555,7 @@ export default function DesignTeamDashboard({
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.82rem', color: notif.read ? '#334155' : '#1E3A8A' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.82rem', color: notif.read ? '#334155' : '#312E81' }}>
                             {notif.title}
                           </span>
                           <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{fmtDateTime(notif.createdAt, notif.time)}</span>
@@ -563,7 +563,7 @@ export default function DesignTeamDashboard({
                         <div style={{ fontSize: '0.78rem', color: '#64748B', lineHeight: '1.3' }}>
                           {notif.desc}
                         </div>
-                        {notif.requestId ? <div style={{ fontSize: '0.68rem', color: '#2563EB', fontWeight: 600, marginTop: '2px' }}>{notif.requestId} &rarr; open task</div> : null}
+                        {notif.requestId ? <div style={{ fontSize: '0.68rem', color: '#4F46E5', fontWeight: 600, marginTop: '2px' }}>{notif.requestId} &rarr; open task</div> : null}
                       </div>
                     ))}
                     {visibleNotifications.length === 0 && (
@@ -577,7 +577,7 @@ export default function DesignTeamDashboard({
                   <div style={{ padding: '10px 16px', borderTop: '1px solid #E2E8F0', textAlign: 'center', backgroundColor: '#F8FAFC' }}>
                     <span 
                       onClick={() => { setCurrentTab('Head Revisions'); setShowNotificationsPopover(false); }}
-                      style={{ fontSize: '0.78rem', fontWeight: 700, color: '#2563EB', cursor: 'pointer' }}
+                      style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4F46E5', cursor: 'pointer' }}
                     >
                       View All Activity & Updates &rarr;
                     </span>
@@ -597,7 +597,7 @@ export default function DesignTeamDashboard({
               
               {/* Left Side: Calendar Icon and Heading */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#EEF2FF', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Calendar size={20} />
                 </div>
                 <div>
@@ -654,7 +654,7 @@ export default function DesignTeamDashboard({
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '28px' }}>
                 {[
                   { title: 'Assigned Design', value: metrics.totalAssigned, icon: <Inbox size={20} />, trend: `${metrics.urgentCount} Urgent`, desc: 'Needs drafting', color: '#3730A3', bg: '#E0E7FF', onClick: () => { setCurrentTab('Requirements'); setStatusFilter('All'); } },
-                  { title: 'In Progress', value: metrics.inProgress, icon: <Clock size={20} />, trend: 'Active draft', desc: 'Drawing on board', color: '#1D4ED8', bg: '#DBEAFE', onClick: () => { setCurrentTab('Requirements'); setStatusFilter('In Progress'); } },
+                  { title: 'In Progress', value: metrics.inProgress, icon: <Clock size={20} />, trend: 'Active draft', desc: 'Drawing on board', color: '#4338CA', bg: '#E0E7FF', onClick: () => { setCurrentTab('Requirements'); setStatusFilter('In Progress'); } },
                   { title: 'Waiting Review', value: metrics.pendingReview, icon: <FileCheck size={20} />, trend: 'Awaiting Head', desc: 'Submittals sent', color: '#D97706', bg: '#FEF3C7', onClick: () => { setCurrentTab('Submittal Status'); setSubmittalSubTab('Awaiting Review'); } },
                   { title: 'Revision Needed', value: metrics.revisionNeeded, icon: <AlertTriangle size={20} />, trend: 'Needs fix', desc: 'Head feedback', color: '#EF4444', bg: '#FEE2E2', onClick: () => { setCurrentTab('Submittal Status'); setSubmittalSubTab('Revisions Needed'); } },
                   { title: 'Approved Designs', value: metrics.approved, icon: <CheckCircle2 size={20} />, trend: 'Fully ready', desc: 'Release to site', color: '#166534', bg: '#DCFCE7', onClick: () => { setCurrentTab('File Manager'); } }
@@ -718,7 +718,7 @@ export default function DesignTeamDashboard({
                       </div>
                       <button 
                         onClick={() => setCurrentTab('Requirements')}
-                        style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                        style={{ background: 'none', border: 'none', color: '#4F46E5', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                       >
                         View All ({designerRequests.length}) <ChevronRight size={14} />
                       </button>
@@ -741,7 +741,7 @@ export default function DesignTeamDashboard({
                         {designerRequests.slice(0, 5).map(req => (
                           <tr key={req.id} style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }} onClick={() => setSelectedReqForDetail(req)}>
                             <td style={{ padding: '12px' }}>
-                              <div style={{ fontWeight: 800, color: '#1E3A8A' }}>{req.id}</div>
+                              <div style={{ fontWeight: 800, color: '#312E81' }}>{req.id}</div>
                               <div style={{ fontWeight: 600, color: '#0F172A' }}>{req.projectName}</div>
                             </td>
                             <td style={{ padding: '12px' }}>
@@ -771,7 +771,7 @@ export default function DesignTeamDashboard({
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleOpenUpload(req); }}
                                   title="Upload Design File"
-                                  style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                  style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#4F46E5', color: '#FFFFFF', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                                 >
                                   <UploadCloud size={12} /> Upload
                                 </button>
@@ -797,7 +797,7 @@ export default function DesignTeamDashboard({
                     <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Recent File Submittals</h3>
                     <button 
                       onClick={() => setCurrentTab('File Manager')}
-                      style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{ background: 'none', border: 'none', color: '#4F46E5', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
                       View All ({uploadedFilesList.length}) <ChevronRight size={14} />
                     </button>
@@ -806,8 +806,8 @@ export default function DesignTeamDashboard({
                     {uploadedFilesList.slice(0, 4).map(sub => (
                       <div key={sub.id} style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E3A8A' }} title={sub.fileName}>{sub.fileName}</span>
-                          <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: '#DBEAFE', color: '#1E40AF', fontSize: '0.68rem', fontWeight: 700, flexShrink: 0 }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#312E81' }} title={sub.fileName}>{sub.fileName}</span>
+                          <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: '#E0E7FF', color: '#3730A3', fontSize: '0.68rem', fontWeight: 700, flexShrink: 0 }}>
                             {sub.version}
                           </span>
                         </div>
@@ -851,7 +851,7 @@ export default function DesignTeamDashboard({
                     <div>
                       {/* Top bar: ID & Status */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                        <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1E3A8A', backgroundColor: '#E0E7FF', padding: '3px 8px', borderRadius: '6px' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#312E81', backgroundColor: '#E0E7FF', padding: '3px 8px', borderRadius: '6px' }}>
                           {req.id}
                         </span>
                         {renderStatusBadge(req.status)}
@@ -897,7 +897,7 @@ export default function DesignTeamDashboard({
                         {req.status === 'Assigned' && (
                           <button
                             onClick={() => handleStartWork(req.id)}
-                            style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #2563EB', backgroundColor: '#EFF6FF', color: '#2563EB', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
+                            style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #4F46E5', backgroundColor: '#EEF2FF', color: '#4F46E5', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
                           >
                             Start Work
                           </button>
@@ -910,7 +910,7 @@ export default function DesignTeamDashboard({
                         </button>
                         <button
                           onClick={() => handleOpenUpload(req)}
-                          style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#4F46E5', color: '#FFFFFF', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
                           <UploadCloud size={14} /> Upload File
                         </button>
@@ -1033,7 +1033,7 @@ export default function DesignTeamDashboard({
                         {requests.filter(r => mineReq(r) && (r.status === 'Approved' || r.status === 'Completed')).map(r => (
                           <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                             <td style={{ padding: '12px' }}>
-                              <div style={{ fontWeight: 800, color: '#1E3A8A' }}>{r.id}</div>
+                              <div style={{ fontWeight: 800, color: '#312E81' }}>{r.id}</div>
                               <div style={{ fontWeight: 700 }}>{r.projectName}</div>
                             </td>
                             <td style={{ padding: '12px' }}>{r.service}</td>
@@ -1103,7 +1103,7 @@ export default function DesignTeamDashboard({
                   <tbody>
                     {uploadedFilesList.map(file => (
                       <tr key={file.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                        <td style={{ padding: '12px', fontWeight: 800, color: '#1E3A8A' }}>
+                        <td style={{ padding: '12px', fontWeight: 800, color: '#312E81' }}>
                           {file.fileName}
                         </td>
                         <td style={{ padding: '12px', fontWeight: 600 }}>{file.projectName}</td>
@@ -1112,13 +1112,13 @@ export default function DesignTeamDashboard({
                             {file.fileType} ({file.fileSize})
                           </span>
                         </td>
-                        <td style={{ padding: '12px', fontWeight: 700, color: '#2563EB' }}>{file.version}</td>
+                        <td style={{ padding: '12px', fontWeight: 700, color: '#4F46E5' }}>{file.version}</td>
                         <td style={{ padding: '12px' }}>{file.submittedBy}</td>
                         <td style={{ padding: '12px', color: '#64748B' }}>{file.submittedDate}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <button
                             onClick={() => file.fileId ? filesApi.download(file.fileId, file.fileName) : notify('No file stored for this submittal.')}
-                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#2563EB', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#4F46E5', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                           >
                             <Download size={12} /> CAD Download
                           </button>
@@ -1144,9 +1144,9 @@ export default function DesignTeamDashboard({
                 {visibleNotifications.filter(n => !n.read).length > 0 && (
                   <button
                     onClick={() => { notificationsApi.markAllRead('team'); setTeamNotifications(teamNotifications.map(n => ({ ...n, read: true }))); }}
-                    style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'background-color 0.2s' }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1D4ED8'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
+                    style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', backgroundColor: '#4F46E5', color: '#FFFFFF', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4338CA'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4F46E5'}
                   >
                     Mark All as Read
                   </button>
@@ -1155,8 +1155,8 @@ export default function DesignTeamDashboard({
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {visibleNotifications.map(notif => {
-                  let badgeBg = '#EFF6FF';
-                  let badgeColor = '#2563EB';
+                  let badgeBg = '#EEF2FF';
+                  let badgeColor = '#4F46E5';
                   if (notif.type === 'revision') {
                     badgeBg = '#FEF3C7';
                     badgeColor = '#D97706';
@@ -1171,7 +1171,7 @@ export default function DesignTeamDashboard({
                       onClick={() => openTaskFromNotification(notif)}
                       style={{ 
                         backgroundColor: notif.read ? '#FFFFFF' : '#F8FAFC', 
-                        border: notif.read ? '1px solid var(--border-color)' : '1px solid #BFDBFE', 
+                        border: notif.read ? '1px solid var(--border-color)' : '1px solid #C7D2FE', 
                         borderRadius: '12px', 
                         padding: '16px 20px', 
                         display: 'flex', 
@@ -1211,10 +1211,10 @@ export default function DesignTeamDashboard({
                           <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{fmtDateTime(notif.createdAt, notif.time)}</span>
                         </div>
                         <p style={{ fontSize: '0.8rem', color: '#475569', margin: '4px 0 0 0', lineHeight: '1.4' }}>{notif.desc}</p>
-                        {notif.requestId ? <span style={{ fontSize: '0.72rem', color: '#2563EB', fontWeight: 600 }}>{notif.requestId} &rarr; open task</span> : null}
+                        {notif.requestId ? <span style={{ fontSize: '0.72rem', color: '#4F46E5', fontWeight: 600 }}>{notif.requestId} &rarr; open task</span> : null}
                       </div>
                       {!notif.read && (
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#2563EB', alignSelf: 'center' }}></span>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4F46E5', alignSelf: 'center' }}></span>
                       )}
                     </div>
                   );
@@ -1276,7 +1276,7 @@ export default function DesignTeamDashboard({
                 <div style={{ margin: '16px 24px 0', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px', backgroundColor: '#F8FAFC' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0F172A' }}>Project Details</span>
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: selectedReqForDetail.source === 'procurement' ? '#2563EB' : '#94A3B8' }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: selectedReqForDetail.source === 'procurement' ? '#4F46E5' : '#94A3B8' }}>
                       {detailProjectLoading ? 'Loading\u2026' : (selectedReqForDetail.source === 'procurement' ? 'From Procurement' : 'Design CRM')}
                     </span>
                   </div>
@@ -1347,9 +1347,9 @@ export default function DesignTeamDashboard({
 
                     {/* PEB Structural Details */}
                     {selectedReqForDetail.pebDetails && (
-                      <div style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '16px' }}>
-                        <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1E3A8A', marginBottom: '10px', margin: 0 }}>Structural Specification Matrix</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '0.8rem', color: '#1E40AF', marginTop: '8px' }}>
+                      <div style={{ backgroundColor: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: '12px', padding: '16px' }}>
+                        <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#312E81', marginBottom: '10px', margin: 0 }}>Structural Specification Matrix</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '0.8rem', color: '#3730A3', marginTop: '8px' }}>
                           <div>Span: <strong>{selectedReqForDetail.pebDetails.span}</strong></div>
                           <div>Length: <strong>{selectedReqForDetail.pebDetails.length}</strong></div>
                           <div>Width: <strong>{selectedReqForDetail.pebDetails.width}</strong></div>
@@ -1374,7 +1374,7 @@ export default function DesignTeamDashboard({
                       selectedReqForDetail.attachments.map((att, idx) => (
                         <div key={idx} style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <Paperclip size={16} color="#2563EB" />
+                            <Paperclip size={16} color="#4F46E5" />
                             <div>
                               <span style={{ fontWeight: 600, color: '#0F172A', display: 'block' }}>{att.name}</span>
                               <span style={{ color: '#94A3B8', fontSize: '0.72rem' }}>Size: {att.size} &bull; Type: {att.type || 'Unknown'}</span>
@@ -1383,7 +1383,7 @@ export default function DesignTeamDashboard({
                           <button 
                             className="action-btn"
                             onClick={() => att.fileId ? filesApi.download(att.fileId, att.name) : notify('No file stored for this attachment.')}
-                            style={{ padding: '6px', borderRadius: '50%', color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer' }}
+                            style={{ padding: '6px', borderRadius: '50%', color: '#4F46E5', background: 'none', border: 'none', cursor: 'pointer' }}
                           >
                             <Download size={16} />
                           </button>
@@ -1433,7 +1433,7 @@ export default function DesignTeamDashboard({
                     />
                     <button
                       onClick={() => handleAddComment(selectedReqForDetail.id)}
-                      style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+                      style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#4F46E5', color: '#FFFFFF', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
                     >
                       Send
                     </button>
@@ -1449,7 +1449,7 @@ export default function DesignTeamDashboard({
                       selectedReqForDetail.history.map((h, idx) => (
                         <div key={idx} style={{ position: 'relative' }}>
                           {/* Dot indicator */}
-                          <div style={{ position: 'absolute', left: '-31px', top: '2px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#2563EB', border: '3px solid #FFFFFF' }} />
+                          <div style={{ position: 'absolute', left: '-31px', top: '2px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#4F46E5', border: '3px solid #FFFFFF' }} />
                           <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>{h.time}</div>
                           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1E293B', marginTop: '2px' }}>{h.title}</div>
                           <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px', lineHeight: '1.4' }}>{h.desc}</div>
@@ -1457,7 +1457,7 @@ export default function DesignTeamDashboard({
                       ))
                     ) : (
                       <div style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: '-31px', top: '2px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#2563EB', border: '3px solid #FFFFFF' }} />
+                        <div style={{ position: 'absolute', left: '-31px', top: '2px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#4F46E5', border: '3px solid #FFFFFF' }} />
                         <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Assignment Time</div>
                         <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1E293B', marginTop: '2px' }}>Requirement Assigned</div>
                         <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px' }}>Assigned to {selectedReqForDetail.assignedDesigner} by Design Head.</div>
@@ -1496,7 +1496,7 @@ export default function DesignTeamDashboard({
                           <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             {submitFiles.map((f, i) => (
                               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '7px 10px' }}>
-                                <FileText size={14} style={{ color: '#2563EB', flexShrink: 0 }} />
+                                <FileText size={14} style={{ color: '#4F46E5', flexShrink: 0 }} />
                                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
                                 <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap' }}>{(f.size / 1024 / 1024).toFixed(2)} MB</span>
                                 <button type="button" onClick={() => setSubmitFiles(prev => prev.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontWeight: 700, fontSize: '0.75rem' }}>Remove</button>
@@ -1535,7 +1535,7 @@ export default function DesignTeamDashboard({
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
                         <button type="button" onClick={handleSubmitForApproval} disabled={submitting}
-                          style={{ padding: '10px 24px', borderRadius: '6px', border: 'none', backgroundColor: submitting ? '#94A3B8' : '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.82rem', cursor: submitting ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          style={{ padding: '10px 24px', borderRadius: '6px', border: 'none', backgroundColor: submitting ? '#94A3B8' : '#4F46E5', color: '#FFFFFF', fontWeight: 700, fontSize: '0.82rem', cursor: submitting ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <UploadCloud size={16} /> {submitting ? 'Submitting\u2026' : (['Changes Requested', 'Rework Required', 'Rejected', 'Revision Requested'].includes(selectedReqForDetail.status) ? 'Resubmit for Approval' : 'Submit for Approval')}
                         </button>
                       </div>
@@ -1566,7 +1566,7 @@ export default function DesignTeamDashboard({
               )}
               <button
                 onClick={() => setActiveDrawerTab('Submit Deliverable')}
-                style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#4F46E5', color: '#FFFFFF', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
               >
                 <UploadCloud size={16} /> Submit Deliverable
               </button>
@@ -1609,7 +1609,7 @@ export default function DesignTeamDashboard({
                   <button
                     type="button"
                     onClick={() => modalFileInputRef.current?.click()}
-                    style={{ padding: '9px 16px', borderRadius: '8px', border: '1px solid #2563EB', backgroundColor: '#EFF6FF', color: '#2563EB', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+                    style={{ padding: '9px 16px', borderRadius: '8px', border: '1px solid #4F46E5', backgroundColor: '#EEF2FF', color: '#4F46E5', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
                   >
                     <UploadCloud size={16} /> Browse File...
                   </button>
@@ -1677,7 +1677,7 @@ export default function DesignTeamDashboard({
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: submitting ? '#94A3B8' : '#2563EB', color: '#FFFFFF', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', cursor: submitting ? 'default' : 'pointer' }}
+                  style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: submitting ? '#94A3B8' : '#4F46E5', color: '#FFFFFF', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', cursor: submitting ? 'default' : 'pointer' }}
                 >
                   <Send size={16} /> {submitting ? 'Submitting\u2026' : 'Submit for Approval'}
                 </button>
